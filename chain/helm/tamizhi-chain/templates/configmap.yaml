@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tamizhi-chain.fullname" . }}-config
+  labels:
+    {{- include "tamizhi-chain.labels" . | nindent 4 }}
+data:
+  chain-id: {{ .Values.node.chainID | quote }}
+  moniker: {{ .Values.node.moniker | quote }}
+  keyring-backend: {{ .Values.node.keyringBackend | quote }}

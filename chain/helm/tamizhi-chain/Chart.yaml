@@ -1,0 +1,16 @@
+apiVersion: v2
+name: tamizhi-chain
+description: Helm chart for the Tamizhi blockchain node
+type: application
+version: 0.1.0
+appVersion: "v1.0.0"
+keywords:
+  - blockchain
+  - cosmos
+  - tamizhi
+home: https://github.com/tamizhi/chain
+sources:
+  - https://github.com/tamizhi/chain
+maintainers:
+  - name: Tamizhi Team
+    email: dev@tamizhi.ai

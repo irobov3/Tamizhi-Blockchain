@@ -1,0 +1,186 @@
+# ============================================================
+# Tamizhi Chain — app.toml (production configuration)
+# ============================================================
+# This is a production-ready app.toml for the Tamizhi blockchain.
+# Cosmos SDK v0.50 format.
+
+###############################################################################
+###                           Base Configuration                            ###
+###############################################################################
+
+# The minimum gas prices a validator is willing to accept for processing a
+# transaction. A transaction's fees must meet the minimum of any denomination
+# specified in this config (e.g. 0.001utmz).
+minimum-gas-prices = "0.001utmz"
+
+# The maximum gas a query comes with by default.
+query-gas-limit = "0"
+
+# Default global pruning settings.
+# Strategies: "default", "everything", "nothing", "custom"
+pruning = "default"
+
+# These are applied if and only if pruning strategy is "custom".
+pruning-keep-recent = "100"
+pruning-interval = "0"
+
+# HaltHeight and HaltTime cause the node to halt at the given block height/time.
+halt-height = 0
+halt-time = 0
+
+# MinRetainBlocks defines the minimum block height offset from the current block
+# being committed, such that all blocks past this offset are pruned from Tendermint.
+min-retain-blocks = 0
+
+# InterBlockCache enables inter-block caching. Enabled by default.
+inter-block-cache = true
+
+# IndexEvents defines the set of events in the form {eventType}.{attributeKey}
+# to index for use with the transaction RPC.
+index-events = []
+
+# IavlCacheSize sets the size of the iavl tree cache (in number of nodes).
+iavl-cache-size = 781250
+
+# IAVLDisableFastNode enables or disables the fast sync node.
+iavl-disable-fastnode = false
+
+# AppDBBackend defines the database backend type to use for the application and
+# snapshots DBs. Options: goleveldb, rocksdb, badgerdb, pebbledb.
+app-db-backend = ""
+
+###############################################################################
+###                         Telemetry Configuration                         ###
+###############################################################################
+
+[telemetry]
+# ServiceName is the name of the telemetry service.
+service-name = "tamizhi"
+
+# Enabled enables the collection of application telemetry and metrics.
+enabled = false
+
+# EnableHostname enables adding hostname to your metrics as a label.
+enable-hostname = false
+
+# EnableHostnameLabel adds hostname as a label to metrics.
+enable-hostname-label = false
+
+# EnableServiceLabel adds service name as a label to metrics.
+enable-service-label = false
+
+# PrometheusRetentionTime, when positive, enables a Prometheus metrics sink.
+# Units: seconds.
+prometheus-retention-time = 0
+
+# GlobalLabels defines a globally applicable set of labels.
+global-labels = []
+
+# MetricsSink defines the type of metrics sink to use.
+metrics-sink = ""
+
+# StatsdAddr defines the address of a statsd server to send metrics.
+statsd-addr = ""
+
+# DatadogHostname defines the hostname to use when reporting metrics to Datadog.
+datadog-hostname = ""
+
+###############################################################################
+###                           API Configuration                             ###
+###############################################################################
+
+[api]
+# Enable defines if the API server should be enabled.
+enable = true
+
+# Swagger enables serving the swagger API spec at /swagger/ endpoint.
+swagger = true
+
+# Address defines the API server to listen on.
+address = "tcp://0.0.0.0:1317"
+
+# MaxOpenConnections defines the maximum number of simultaneous connections.
+max-open-connections = 1000
+
+# RPCReadTimeout defines the Tendermint RPC read timeout (in seconds).
+rpc-read-timeout = 10
+
+# RPCWriteTimeout defines the Tendermint RPC write timeout (in seconds).
+rpc-write-timeout = 0
+
+# RPCMaxBodyBytes defines the maximum body bytes Tendermint RPC server
+# can read.
+rpc-max-body-bytes = 1000000
+
+# EnabledUnsafeCors defines if CORS should be enabled (unsafe - use in dev).
+enabled-unsafe-cors = false
+
+###############################################################################
+###                           gRPC Configuration                            ###
+###############################################################################
+
+[grpc]
+# Enable defines if the gRPC server should be enabled.
+enable = true
+
+# Address defines the gRPC server address to bind to.
+address = "0.0.0.0:9090"
+
+# MaxRecvMsgSize defines the max message size in bytes the server can receive.
+# Default: 10MB
+max-recv-msg-size = "10485760"
+
+# MaxSendMsgSize defines the max message size in bytes the server can send.
+# Default: math.MaxInt32
+max-send-msg-size = "2147483647"
+
+###############################################################################
+###                        gRPC Web Configuration                           ###
+###############################################################################
+
+[grpc-web]
+# GRPCWebEnable defines if the gRPC-web should be enabled.
+enable = true
+
+# Address defines the gRPC-web server address to bind to.
+address = "0.0.0.0:9091"
+
+# EnabledUnsafeCors defines if CORS should be enabled for gRPC web.
+enable-unsafe-cors = false
+
+###############################################################################
+###                        State Sync Configuration                         ###
+###############################################################################
+
+[state-sync]
+# SnapshotInterval specifies the block interval at which local state sync
+# snapshots are taken (0 to disable).
+snapshot-interval = 1000
+
+# SnapshotKeepRecent specifies the number of recent snapshots to keep and serve.
+snapshot-keep-recent = 2
+
+###############################################################################
+###                         Store / State Streaming                         ###
+###############################################################################
+
+[store]
+streamers = []
+
+[streamers]
+[streamers.file]
+keys = ["*"]
+write_dir = ""
+prefix = ""
+output-metadata = "true"
+stop-node-on-error = "true"
+fsync = "false"
+
+###############################################################################
+###                             Mempool                                     ###
+###############################################################################
+
+[mempool]
+# MaxTxs defines the maximum number of transactions in the mempool.
+# -1 means unlimited, 0 disables mempool.
+max-txs = "5000"

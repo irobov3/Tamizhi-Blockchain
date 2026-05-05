@@ -1,0 +1,142 @@
+# ─────────────────────────────────────────
+# Redis — ConfigMap
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: tamizhi
+  labels:
+    app: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+data:
+  redis.conf: |
+    appendonly yes
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+    save 900 1
+    save 300 10
+    save 60 10000
+    loglevel notice
+    databases 16
+    timeout 0
+    tcp-keepalive 300
+    bind 0.0.0.0
+
+---
+# ─────────────────────────────────────────
+# Redis — PersistentVolumeClaim
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: tamizhi
+  labels:
+    app: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+
+---
+# ─────────────────────────────────────────
+# Redis — Deployment
+# ─────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: tamizhi
+  labels:
+    app: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: redis
+        app.kubernetes.io/name: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command:
+            - redis-server
+            - /etc/redis/redis.conf
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            - name: redis-config-volume
+              mountPath: /etc/redis
+            - name: redis-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: redis-config-volume
+          configMap:
+            name: redis-config
+            items:
+              - key: redis.conf
+                path: redis.conf
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-pvc
+
+---
+# ─────────────────────────────────────────
+# Redis — Service
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: tamizhi
+  labels:
+    app: redis
+    app.kubernetes.io/name: redis
+spec:
+  selector:
+    app: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+  type: ClusterIP

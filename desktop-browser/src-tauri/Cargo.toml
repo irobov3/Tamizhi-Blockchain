@@ -1,0 +1,29 @@
+[package]
+name = "tamizhi-browser-desktop"
+version = "0.1.0"
+description = "Web3 desktop browser for the Tamizhi network"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "tamizhi_browser_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-store = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-deep-link = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

@@ -1,0 +1,279 @@
+# ============================================================
+# Tamizhi Chain Node — Kubernetes Manifests
+# Includes: ConfigMap, StatefulSet, PVC, ClusterIP Service,
+#           LoadBalancer Service
+# ============================================================
+
+# ─────────────────────────────────────────
+# Chain Node — ConfigMap (config overrides)
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chain-config
+  namespace: tamizhi
+  labels:
+    app.kubernetes.io/name: chain
+    app.kubernetes.io/part-of: tamizhi
+data:
+  CHAIN_ID: "tamizhi-1"
+  MONIKER: "tamizhi-node"
+  MIN_GAS_PRICES: "0.001utmz"
+  # These are injected as env vars and used by the entrypoint/init container
+  RPC_LADDR: "tcp://0.0.0.0:26657"
+  API_ADDRESS: "tcp://0.0.0.0:1317"
+  GRPC_ADDRESS: "0.0.0.0:9090"
+
+---
+# ─────────────────────────────────────────
+# Chain Node — StatefulSet
+# ─────────────────────────────────────────
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: chain
+  namespace: tamizhi
+  labels:
+    app: chain
+    app.kubernetes.io/name: chain
+    app.kubernetes.io/part-of: tamizhi
+spec:
+  serviceName: chain-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chain
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: chain
+        app.kubernetes.io/name: chain
+        app.kubernetes.io/part-of: tamizhi
+    spec:
+      # ── Init container: initialise chain home if genesis is missing ──
+      initContainers:
+        - name: chain-init
+          image: tamizhi/node:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              CHAIN_HOME="/home/tamizhi/.tamizhi"
+              if [ ! -f "$CHAIN_HOME/config/genesis.json" ]; then
+                echo "Genesis not found — initialising chain..."
+                tamizhi init "${MONIKER:-tamizhi-node}" \
+                  --chain-id "${CHAIN_ID:-tamizhi-1}" \
+                  --home "$CHAIN_HOME"
+                # Enable REST API
+                sed -i 's/enable = false/enable = true/g' "$CHAIN_HOME/config/app.toml" || true
+                sed -i 's/swagger = false/swagger = true/g' "$CHAIN_HOME/config/app.toml" || true
+                # Allow all CORS origins (restrict in production)
+                sed -i 's/cors_allowed_origins = \[\]/cors_allowed_origins = ["*"]/' "$CHAIN_HOME/config/config.toml" || true
+                echo "Chain initialised."
+              else
+                echo "Genesis already exists — skipping init."
+              fi
+          env:
+            - name: CHAIN_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: chain-config
+                  key: CHAIN_ID
+            - name: MONIKER
+              valueFrom:
+                configMapKeyRef:
+                  name: chain-config
+                  key: MONIKER
+          volumeMounts:
+            - name: chain-data
+              mountPath: /home/tamizhi/.tamizhi
+
+      containers:
+        - name: chain
+          image: tamizhi/node:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: p2p
+              containerPort: 26656
+              protocol: TCP
+            - name: rpc
+              containerPort: 26657
+              protocol: TCP
+            - name: rest
+              containerPort: 1317
+              protocol: TCP
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+          args:
+            - start
+            - "--home"
+            - "/home/tamizhi/.tamizhi"
+            - "--rpc.laddr"
+            - "tcp://0.0.0.0:26657"
+            - "--api.enable"
+            - "--api.address"
+            - "tcp://0.0.0.0:1317"
+            - "--grpc.address"
+            - "0.0.0.0:9090"
+            - "--minimum-gas-prices"
+            - "0.001utmz"
+          envFrom:
+            - configMapRef:
+                name: chain-config
+          volumeMounts:
+            - name: chain-data
+              mountPath: /home/tamizhi/.tamizhi
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: rpc
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: rpc
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: rpc
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 18    # up to 3 minutes to start
+      terminationGracePeriodSeconds: 60
+
+  # ── PVC template (one per pod) ──
+  volumeClaimTemplates:
+    - metadata:
+        name: chain-data
+        labels:
+          app.kubernetes.io/name: chain
+          app.kubernetes.io/part-of: tamizhi
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: standard
+
+---
+# ─────────────────────────────────────────
+# Chain Node — Headless Service (for StatefulSet DNS)
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: chain-headless
+  namespace: tamizhi
+  labels:
+    app: chain
+    app.kubernetes.io/name: chain
+    app.kubernetes.io/part-of: tamizhi
+spec:
+  clusterIP: None
+  selector:
+    app: chain
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+    - name: rest
+      port: 1317
+      targetPort: 1317
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+
+---
+# ─────────────────────────────────────────
+# Chain Node — Internal ClusterIP Service
+# Used by backend, ai, and other in-cluster services
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: chain-service
+  namespace: tamizhi
+  labels:
+    app: chain
+    app.kubernetes.io/name: chain
+    app.kubernetes.io/part-of: tamizhi
+spec:
+  type: ClusterIP
+  selector:
+    app: chain
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+      protocol: TCP
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    - name: rest
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+# ─────────────────────────────────────────
+# Chain Node — LoadBalancer Service
+# Exposes RPC (26657) and REST (1317) externally
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: chain-lb
+  namespace: tamizhi
+  labels:
+    app: chain
+    app.kubernetes.io/name: chain
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    # Uncomment and set for cloud providers:
+    # service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  type: LoadBalancer
+  selector:
+    app: chain
+  ports:
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      protocol: TCP
+    - name: rest
+      port: 1317
+      targetPort: 1317
+      protocol: TCP
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      protocol: TCP

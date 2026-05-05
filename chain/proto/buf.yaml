@@ -1,0 +1,19 @@
+version: v1
+name: buf.build/tamizhi/chain
+deps:
+  - buf.build/cosmos/cosmos-sdk
+  - buf.build/cosmos/cosmos-proto
+  - buf.build/googleapis/googleapis
+  - buf.build/gogo/protobuf
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+  except:
+    - UNARY_RPC
+    - SERVICE_SUFFIX
+    - PACKAGE_VERSION_SUFFIX
+  rpc_allow_google_protobuf_empty_requests: true
+  rpc_allow_google_protobuf_empty_responses: true

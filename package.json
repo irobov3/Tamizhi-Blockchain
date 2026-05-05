@@ -1,0 +1,53 @@
+{
+  "name": "tamizhi-ecosystem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tamizhi — Tamil-first decentralized AI and messaging ecosystem",
+  "workspaces": [
+    "web",
+    "backend",
+    "storage",
+    "messaging",
+    "mobile"
+  ],
+  "scripts": {
+    "setup": "bash infra/scripts/setup.sh",
+    "dev": "bash infra/scripts/start-dev.sh",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "docker:up": "docker compose up",
+    "docker:up:d": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:down:volumes": "docker compose down --volumes",
+    "docker:build": "docker compose build",
+    "docker:logs": "docker compose logs -f",
+    "docker:logs:backend": "docker compose logs -f backend",
+    "docker:logs:web": "docker compose logs -f web",
+    "docker:logs:chain": "docker compose logs -f chain",
+    "docker:logs:ai": "docker compose logs -f ai",
+    "docker:logs:storage": "docker compose logs -f storage",
+    "docker:logs:messaging": "docker compose logs -f messaging",
+    "docker:ps": "docker compose ps",
+    "docker:restart": "docker compose restart",
+    "chain:init": "bash infra/scripts/chain-init.sh",
+    "launch": "bash scripts/launch.sh",
+    "launch:check": "bash scripts/launch.sh check",
+    "launch:dev": "bash scripts/launch.sh dev",
+    "launch:services": "bash scripts/launch.sh services",
+    "launch:contract": "bash scripts/launch.sh contract",
+    "launch:stop": "bash scripts/launch.sh stop",
+    "reset": "bash infra/scripts/reset.sh",
+    "db:migrate": "cd backend && npx prisma migrate dev",
+    "db:migrate:prod": "cd backend && npx prisma migrate deploy",
+    "db:studio": "cd backend && npx prisma studio",
+    "db:generate": "cd backend && npx prisma generate"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

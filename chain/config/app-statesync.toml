@@ -1,0 +1,30 @@
+###############################################################################
+###                        State Sync Configuration                         ###
+###############################################################################
+# Tamizhi Chain — State Sync Reference Configuration
+# Copy relevant sections into your app.toml
+
+[state-sync]
+# snapshot-interval specifies the block interval at which local state sync
+# snapshots are taken (0 to disable). Must be a multiple of pruning keep-every.
+# Recommended: 1000 (snapshot every ~83 minutes at 5s blocks)
+snapshot-interval = 1000
+
+# snapshot-keep-recent specifies the number of recent state sync snapshots to keep.
+# Recommended: 5 (keep ~5000 blocks / ~7 hours of snapshots)
+snapshot-keep-recent = 5
+
+###############################################################################
+###                          Pruning Configuration                          ###
+###############################################################################
+
+[pruning]
+# Options: default | nothing | everything | custom
+pruning = "custom"
+
+# These apply if pruning = "custom"
+# keep-recent: keep the last N recent states (recommended: 100)
+pruning-keep-recent = "100"
+
+# interval: prune every N blocks (recommended: 10)
+pruning-interval = "10"

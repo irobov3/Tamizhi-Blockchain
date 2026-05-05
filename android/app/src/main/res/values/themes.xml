@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme — always dark, Material3 -->
+    <style name="Theme.Tamizhi" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/tamizhi_saffron</item>
+        <item name="colorOnPrimary">@color/tamizhi_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tamizhi_primary_container</item>
+
+        <!-- Secondary / accent -->
+        <item name="colorSecondary">@color/tamizhi_gold</item>
+        <item name="colorOnSecondary">@color/tamizhi_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/tamizhi_secondary_container</item>
+
+        <!-- Background / surface -->
+        <item name="colorSurface">@color/tamizhi_surface</item>
+        <item name="colorOnSurface">@color/tamizhi_on_surface</item>
+        <item name="colorSurfaceVariant">@color/tamizhi_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/tamizhi_on_surface_variant</item>
+        <item name="android:colorBackground">@color/tamizhi_background</item>
+
+        <!-- Error -->
+        <item name="colorError">@color/tamizhi_error</item>
+
+        <!-- Outline -->
+        <item name="colorOutline">@color/tamizhi_outline</item>
+
+        <!-- Status bar and navigation bar -->
+        <item name="android:statusBarColor">@color/tamizhi_background</item>
+        <item name="android:navigationBarColor">@color/tamizhi_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+
+        <!-- Window -->
+        <item name="android:windowBackground">@color/tamizhi_background</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- Dark override — identical to base since we always want dark -->
+    <style name="Theme.Tamizhi.Dark" parent="Theme.Tamizhi">
+        <!-- No overrides needed; base is already dark. Add night-specific tweaks here. -->
+    </style>
+
+    <!-- Splash / launch screen theme (no action bar, opaque dark background) -->
+    <style name="Theme.Tamizhi.Splash" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/tamizhi_background</item>
+        <item name="android:statusBarColor">@color/tamizhi_background</item>
+        <item name="android:navigationBarColor">@color/tamizhi_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+</resources>

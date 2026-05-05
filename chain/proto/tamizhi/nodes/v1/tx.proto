@@ -1,0 +1,75 @@
+syntax = "proto3";
+package tamizhi.nodes.v1;
+
+option go_package = "github.com/tamizhi/chain/x/nodes/types";
+
+import "gogoproto/gogo.proto";
+
+// ── Shared types ─────────────────────────────────────────────────────────────
+
+message Coin {
+  string denom  = 1;
+  string amount = 2;
+}
+
+// ── Messages ─────────────────────────────────────────────────────────────────
+
+message MsgRegisterNode {
+  string creator  = 1;
+  string node_id  = 2 [(gogoproto.customname) = "NodeID"];
+  string endpoint = 3;
+  Coin   stake    = 4;
+}
+
+message MsgRegisterNodeResponse {
+  string swarm_id = 1 [(gogoproto.customname) = "SwarmID"];
+}
+
+message MsgDeregisterNode {
+  string creator = 1;
+  string node_id = 2 [(gogoproto.customname) = "NodeID"];
+}
+
+message MsgDeregisterNodeResponse {}
+
+message MsgUpdateNodeEndpoint {
+  string creator      = 1;
+  string node_id      = 2 [(gogoproto.customname) = "NodeID"];
+  string new_endpoint = 3;
+}
+
+message MsgUpdateNodeEndpointResponse {}
+
+message MsgClaimNodeReward {
+  string creator = 1;
+  string node_id = 2 [(gogoproto.customname) = "NodeID"];
+}
+
+message MsgClaimNodeRewardResponse {
+  Coin reward_amount = 1;
+}
+
+// Params contains module parameters governable via x/gov.
+message Params {
+  uint64 min_stake_amount       = 1 [(gogoproto.customname) = "MinStakeAmount"];
+  uint64 uptime_jail_threshold  = 2 [(gogoproto.customname) = "UptimeJailThreshold"];
+  string slash_fraction         = 3 [(gogoproto.customname) = "SlashFraction"];
+  uint64 max_nodes_per_swarm    = 4 [(gogoproto.customname) = "MaxNodesPerSwarm"];
+}
+
+message MsgUpdateParams {
+  string authority = 1;
+  Params params    = 2 [(gogoproto.nullable) = false];
+}
+
+message MsgUpdateParamsResponse {}
+
+// ── Service ──────────────────────────────────────────────────────────────────
+
+service Msg {
+  rpc RegisterNode(MsgRegisterNode) returns (MsgRegisterNodeResponse);
+  rpc DeregisterNode(MsgDeregisterNode) returns (MsgDeregisterNodeResponse);
+  rpc UpdateNodeEndpoint(MsgUpdateNodeEndpoint) returns (MsgUpdateNodeEndpointResponse);
+  rpc ClaimNodeReward(MsgClaimNodeReward) returns (MsgClaimNodeRewardResponse);
+  rpc UpdateParams(MsgUpdateParams)         returns (MsgUpdateParamsResponse);
+}

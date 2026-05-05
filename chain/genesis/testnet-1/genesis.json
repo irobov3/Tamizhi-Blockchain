@@ -1,0 +1,569 @@
+{
+  "genesis_time": "2026-06-01T00:00:00Z",
+  "chain_id": "tamizhi-testnet-1",
+  "initial_height": "1",
+  "consensus": {
+    "params": {
+      "block": {
+        "max_bytes": "22020096",
+        "max_gas": "100000000"
+      },
+      "evidence": {
+        "max_age_num_blocks": "100000",
+        "max_age_duration": "172800000000000",
+        "max_bytes": "1048576"
+      },
+      "validator": {
+        "pub_key_types": ["ed25519"]
+      },
+      "version": {
+        "app": "0"
+      },
+      "abci": {
+        "vote_extensions_enable_height": "0"
+      }
+    }
+  },
+  "app_hash": "",
+  "app_state": {
+    "auth": {
+      "params": {
+        "max_memo_characters": "256",
+        "tx_sig_limit": "7",
+        "tx_size_cost_per_byte": "10",
+        "sig_verify_cost_ed25519": "590",
+        "sig_verify_cost_secp256k1": "1000"
+      },
+      "accounts": [
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv",
+          "pub_key": null,
+          "account_number": "0",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "tamizhi1jv65s3grqf6v6jl3dp4t6c9t9rk99cd8z2l9p",
+          "pub_key": null,
+          "account_number": "1",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "tamizhi1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3prylxh",
+          "pub_key": null,
+          "account_number": "2",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "tamizhi1tygms3xhhs3yv487phx3dw4a95jn7t7lpm470s",
+          "pub_key": null,
+          "account_number": "3",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.auth.v1beta1.BaseAccount",
+          "address": "tamizhi1f9tu8m75v54a0m2zmek3dvkk2nv2enk2ap9fv4",
+          "pub_key": null,
+          "account_number": "4",
+          "sequence": "0"
+        },
+        {
+          "@type": "/cosmos.vesting.v1beta1.ContinuousVestingAccount",
+          "base_vesting_account": {
+            "base_account": {
+              "address": "tamizhi1s77x8mvhzlqczsmwcpe4m6d7fk6c4nuhx2e9r",
+              "pub_key": null,
+              "account_number": "5",
+              "sequence": "0"
+            },
+            "original_vesting": [{"denom": "utmz", "amount": "250000000000000"}],
+            "delegated_free": [],
+            "delegated_vesting": [],
+            "end_time": "1906934400"
+          },
+          "start_time": "1875398400"
+        }
+      ]
+    },
+    "bank": {
+      "params": {
+        "send_enabled": [],
+        "default_send_enabled": true
+      },
+      "balances": [
+        {
+          "address": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv",
+          "coins": [{"denom": "utmz", "amount": "400000000000000"}]
+        },
+        {
+          "address": "tamizhi1jv65s3grqf6v6jl3dp4t6c9t9rk99cd8z2l9p",
+          "coins": [{"denom": "utmz", "amount": "200000000000000"}]
+        },
+        {
+          "address": "tamizhi1fl48vsnmsdzcv85q5d2q4z5ajdha8yu3prylxh",
+          "coins": [{"denom": "utmz", "amount": "100000000000000"}]
+        },
+        {
+          "address": "tamizhi1tygms3xhhs3yv487phx3dw4a95jn7t7lpm470s",
+          "coins": [{"denom": "utmz", "amount": "50000000000000"}]
+        },
+        {
+          "address": "tamizhi1f9tu8m75v54a0m2zmek3dvkk2nv2enk2ap9fv4",
+          "coins": [{"denom": "utmz", "amount": "15000000000000"}]
+        },
+        {
+          "address": "tamizhi1s77x8mvhzlqczsmwcpe4m6d7fk6c4nuhx2e9r",
+          "coins": [{"denom": "utmz", "amount": "235000000000000"}]
+        }
+      ],
+      "supply": [{"denom": "utmz", "amount": "1000000000000000"}],
+      "denom_metadata": [
+        {
+          "description": "The native staking and governance token of the Tamizhi blockchain",
+          "denom_units": [
+            {"denom": "utmz", "exponent": 0, "aliases": ["microtamizhi"]},
+            {"denom": "mtmz", "exponent": 3, "aliases": ["millitamizhi"]},
+            {"denom": "tmz", "exponent": 6, "aliases": ["tamizhi"]}
+          ],
+          "base": "utmz",
+          "display": "tmz",
+          "name": "Tamizhi",
+          "symbol": "TMZ",
+          "uri": "",
+          "uri_hash": ""
+        }
+      ],
+      "send_enabled": []
+    },
+    "capability": {
+      "index": "1",
+      "owners": []
+    },
+    "consensus": null,
+    "crisis": {
+      "constant_fee": {"denom": "utmz", "amount": "1000000000"}
+    },
+    "distribution": {
+      "params": {
+        "community_tax": "0.020000000000000000",
+        "base_proposer_reward": "0.000000000000000000",
+        "bonus_proposer_reward": "0.000000000000000000",
+        "withdraw_addr_enabled": true
+      },
+      "fee_pool": {
+        "community_pool": []
+      },
+      "delegator_withdraw_infos": [],
+      "previous_proposer": "",
+      "outstanding_rewards": [],
+      "validator_accumulated_commissions": [],
+      "validator_historical_rewards": [],
+      "validator_current_rewards": [],
+      "delegator_starting_infos": [],
+      "validator_slash_events": []
+    },
+    "evidence": {
+      "evidence": []
+    },
+    "feegrant": {
+      "allowances": []
+    },
+    "genutil": {
+      "gen_txs": []
+    },
+    "gov": {
+      "starting_proposal_id": "1",
+      "deposits": [],
+      "votes": [],
+      "proposals": [],
+      "deposit_params": null,
+      "voting_params": null,
+      "tally_params": null,
+      "params": {
+        "min_deposit": [{"denom": "utmz", "amount": "10000000"}],
+        "max_deposit_period": "172800s",
+        "voting_period": "172800s",
+        "quorum": "0.334000000000000000",
+        "threshold": "0.500000000000000000",
+        "veto_threshold": "0.334000000000000000",
+        "min_initial_deposit_ratio": "0.200000000000000000",
+        "proposal_cancel_ratio": "0.500000000000000000",
+        "proposal_cancel_dest": "",
+        "expedited_voting_period": "86400s",
+        "expedited_threshold": "0.667000000000000000",
+        "expedited_min_value_percent": "0.500000000000000000",
+        "burn_vote_quorum": false,
+        "burn_proposal_deposit_prevote": false,
+        "burn_vote_veto": true,
+        "min_deposit_ratio": "0.010000000000000000"
+      },
+      "constitution": ""
+    },
+    "group": {
+      "group_seq": "0",
+      "groups": [],
+      "group_members": [],
+      "group_policy_seq": "0",
+      "group_policies": [],
+      "proposal_seq": "0",
+      "proposals": [],
+      "votes": []
+    },
+    "ibc": {
+      "client_genesis": {
+        "clients": [],
+        "clients_consensus": [],
+        "clients_metadata": [],
+        "params": {
+          "allowed_clients": [
+            "06-solomachine",
+            "07-tendermint",
+            "09-localhost"
+          ]
+        },
+        "create_localhost": false,
+        "next_client_sequence": "0"
+      },
+      "connection_genesis": {
+        "connections": [],
+        "client_connection_paths": [],
+        "next_connection_sequence": "0",
+        "params": {
+          "max_expected_time_per_block": "30000000000"
+        }
+      },
+      "channel_genesis": {
+        "channels": [],
+        "acknowledgements": [],
+        "commitments": [],
+        "receipts": [],
+        "send_sequences": [],
+        "recv_sequences": [],
+        "ack_sequences": [],
+        "next_channel_sequence": "0",
+        "params": {
+          "upgrade_timeout": {
+            "height": {"revision_number": "0", "revision_height": "0"},
+            "timestamp": "600000000000"
+          }
+        }
+      }
+    },
+    "interchain_accounts": {
+      "controller_genesis_state": {
+        "active_channels": [],
+        "interchain_accounts": [],
+        "ports": [],
+        "params": {
+          "controller_enabled": true
+        }
+      },
+      "host_genesis_state": {
+        "active_channels": [],
+        "interchain_accounts": [],
+        "port": "icahost",
+        "params": {
+          "host_enabled": true,
+          "allow_messages": ["*"]
+        }
+      }
+    },
+    "mint": {
+      "minter": {
+        "inflation": "0.130000000000000000",
+        "annual_provisions": "0.000000000000000000"
+      },
+      "params": {
+        "mint_denom": "utmz",
+        "inflation_rate_change": "0.130000000000000000",
+        "inflation_max": "0.200000000000000000",
+        "inflation_min": "0.070000000000000000",
+        "goal_bonded": "0.670000000000000000",
+        "blocks_per_year": "6311520"
+      }
+    },
+    "params": null,
+    "slashing": {
+      "params": {
+        "signed_blocks_window": "100",
+        "min_signed_per_window": "0.500000000000000000",
+        "downtime_jail_duration": "600s",
+        "slash_fraction_double_sign": "0.050000000000000000",
+        "slash_fraction_downtime": "0.000100000000000000"
+      },
+      "signing_infos": [],
+      "missed_blocks": []
+    },
+    "staking": {
+      "params": {
+        "unbonding_time": "1814400s",
+        "max_validators": 100,
+        "max_entries": 7,
+        "historical_entries": 10000,
+        "bond_denom": "utmz",
+        "min_commission_rate": "0.050000000000000000"
+      },
+      "last_total_power": "0",
+      "last_validator_powers": [],
+      "validators": [],
+      "delegations": [],
+      "unbonding_delegations": [],
+      "redelegations": [],
+      "exported": false
+    },
+    "transfer": {
+      "port_id": "transfer",
+      "denom_traces": [],
+      "params": {
+        "send_enabled": true,
+        "receive_enabled": true
+      },
+      "total_escrowed": []
+    },
+    "upgrade": {},
+    "vesting": {},
+    "wasm": {
+      "params": {
+        "code_upload_access": {
+          "permission": "Everybody",
+          "addresses": []
+        },
+        "instantiate_default_permission": "Everybody",
+        "max_wasm_code_size": 819200
+      },
+      "codes": [],
+      "contracts": [],
+      "sequences": []
+    },
+    "nodes": {
+      "nodes": [],
+      "swarms": []
+    },
+    "security": {
+      "threat_flags": [],
+      "security_events": []
+    },
+    "accesslog": {
+      "logs": []
+    },
+    "rewards": {
+      "rules": [],
+      "records": []
+    },
+    "messaging": {
+      "session_ids": [],
+      "groups": []
+    },
+    "identity": {},
+    "literature": {
+      "works": [
+        {
+          "work_id": "tmz-work-genesis-thirukkural-001",
+          "title": "அகர முதல எழுத்தெல்லாம் ஆதி பகவன் முதற்றே உலகு",
+          "title_transliterated": "Akara mudala ezhuththellaam aadhi bhagavan mudhatre ulagu",
+          "title_english": "Kural 1 - The Supremacy of God",
+          "author": {
+            "name": "திருவள்ளுவர்",
+            "name_transliterated": "Thiruvalluvar",
+            "era": "1st-5th century CE",
+            "region": "Tamil Nadu, India"
+          },
+          "content": {
+            "ipfs_cid": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+            "sha256_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+            "size_bytes": 512,
+            "arweave_tx_id": "",
+            "mime_type": "text/plain",
+            "encoding": "utf-8"
+          },
+          "classification": {
+            "period": "classical",
+            "genre": "poetry",
+            "tags": ["thirukkural", "ethics", "virtue", "aram", "kural", "thiruvalluvar"],
+            "language": "Classical Tamil",
+            "script": "Tamil"
+          },
+          "rights": {
+            "license": "public_domain",
+            "is_public_domain": true,
+            "original_source_url": "https://www.projectmadurai.org/pm_etexts/utf8/pmuni0500.html"
+          },
+          "description": "The first of 1330 couplets in the Thirukkural. Declares that as the letter A is the origin of all letters, so is God (Aadhi Bhagavan) the origin of all creation. Universally celebrated as the most profound opening verse in Tamil literature.",
+          "is_verified": true,
+          "verified_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv",
+          "verified_at": "2026-06-01T00:00:00Z",
+          "block_height": 1,
+          "tx_hash": "GENESIS",
+          "timestamp": "2026-06-01T00:00:00Z",
+          "uploaded_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv"
+        },
+        {
+          "work_id": "tmz-work-genesis-thirukkural-002",
+          "title": "கற்றதனால் ஆய பயனென்கொல் வாலறிவன் நற்றாள் தொழாஅர் எனின்",
+          "title_transliterated": "Katradhanaal aaya payanen kol vaalariivan natral thozhaar enin",
+          "title_english": "Kural 2 - Learning and Devotion",
+          "author": {
+            "name": "திருவள்ளுவர்",
+            "name_transliterated": "Thiruvalluvar",
+            "era": "1st-5th century CE",
+            "region": "Tamil Nadu, India"
+          },
+          "content": {
+            "ipfs_cid": "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354",
+            "sha256_hash": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+            "size_bytes": 528,
+            "arweave_tx_id": "",
+            "mime_type": "text/plain",
+            "encoding": "utf-8"
+          },
+          "classification": {
+            "period": "classical",
+            "genre": "poetry",
+            "tags": ["thirukkural", "ethics", "learning", "devotion", "aram", "kural"],
+            "language": "Classical Tamil",
+            "script": "Tamil"
+          },
+          "rights": {
+            "license": "public_domain",
+            "is_public_domain": true,
+            "original_source_url": "https://www.projectmadurai.org/pm_etexts/utf8/pmuni0500.html"
+          },
+          "description": "The second kural asks: what benefit has one gained from all that is learned, if one does not bow at the feet of He who is pure knowledge? Emphasizes devotion and learning as complementary virtues.",
+          "is_verified": true,
+          "verified_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv",
+          "verified_at": "2026-06-01T00:00:00Z",
+          "block_height": 1,
+          "tx_hash": "GENESIS",
+          "timestamp": "2026-06-01T00:00:00Z",
+          "uploaded_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv"
+        },
+        {
+          "work_id": "tmz-work-genesis-purananuru-192",
+          "title": "யாதும் ஊரே யாவரும் கேளிர்",
+          "title_transliterated": "Yaathum oore yaavarum kelir",
+          "title_english": "Purananuru 192 - All Towns Are My Town",
+          "author": {
+            "name": "கணியன் பூங்குன்றனார்",
+            "name_transliterated": "Kaniyan Pungundranar",
+            "era": "3rd century BCE - 3rd century CE",
+            "region": "Ancient Tamil Nadu"
+          },
+          "content": {
+            "ipfs_cid": "bafybeif2rhwbm6u7xlb6kq6ry7bkzgpbmblbfehm3jkxcqgsnozfbnquy4",
+            "sha256_hash": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2",
+            "size_bytes": 384,
+            "arweave_tx_id": "",
+            "mime_type": "text/plain",
+            "encoding": "utf-8"
+          },
+          "classification": {
+            "period": "ancient",
+            "genre": "poetry",
+            "tags": ["sangam", "purananuru", "humanism", "cosmopolitan", "puram", "philosophy"],
+            "language": "Classical Tamil",
+            "script": "Tamil"
+          },
+          "rights": {
+            "license": "public_domain",
+            "is_public_domain": true,
+            "original_source_url": "https://www.projectmadurai.org/pm_etexts/utf8/pmuni0007_01.html"
+          },
+          "description": "The most celebrated cosmopolitan verse of ancient Tamil literature. Every town is my hometown, every person is my kin. Declares universal brotherhood transcending all geographical and social boundaries. Considered one of the earliest expressions of global humanism.",
+          "is_verified": true,
+          "verified_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv",
+          "verified_at": "2026-06-01T00:00:00Z",
+          "block_height": 1,
+          "tx_hash": "GENESIS",
+          "timestamp": "2026-06-01T00:00:00Z",
+          "uploaded_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv"
+        },
+        {
+          "work_id": "tmz-work-genesis-kurunthokai-040",
+          "title": "யாயும் ஞாயும் யார் ஆகியரோ",
+          "title_transliterated": "Yaayum nyaayum yaar aagiyaro",
+          "title_english": "Kurunthokai 40 - What My Mother Was to Me",
+          "author": {
+            "name": "செம்புலப்பேயனீரார்",
+            "name_transliterated": "Sembulapeyanirar",
+            "era": "3rd century BCE - 3rd century CE",
+            "region": "Ancient Tamil Nadu"
+          },
+          "content": {
+            "ipfs_cid": "bafybeiemxf5abjwjbikoz4mc3a3dla6ual3jsgpdr4cjr3oz3evfyavhwq",
+            "sha256_hash": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5",
+            "size_bytes": 320,
+            "arweave_tx_id": "",
+            "mime_type": "text/plain",
+            "encoding": "utf-8"
+          },
+          "classification": {
+            "period": "ancient",
+            "genre": "poetry",
+            "tags": ["sangam", "kurunthokai", "akam", "love", "kurinji", "union"],
+            "language": "Classical Tamil",
+            "script": "Tamil"
+          },
+          "rights": {
+            "license": "public_domain",
+            "is_public_domain": true,
+            "original_source_url": "https://www.projectmadurai.org/pm_etexts/utf8/pmuni0004_01.html"
+          },
+          "description": "One of the most celebrated love poems in world literature. A woman speaks of her lover using the red earth and pouring rain as a metaphor for their inseparable union — hearts mingled beyond parting. Celebrated globally for its metaphor of inseparable love.",
+          "is_verified": true,
+          "verified_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv",
+          "verified_at": "2026-06-01T00:00:00Z",
+          "block_height": 1,
+          "tx_hash": "GENESIS",
+          "timestamp": "2026-06-01T00:00:00Z",
+          "uploaded_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv"
+        },
+        {
+          "work_id": "tmz-work-genesis-silappathikaram-001",
+          "title": "புகார்க் காண்டம் - மங்கல வாழ்த்துப் பாடல்",
+          "title_transliterated": "Puharkkaandam - Mangala vaazhthup paadal",
+          "title_english": "Silappathikaram - Puhar Canto Opening",
+          "author": {
+            "name": "இளங்கோ அடிகள்",
+            "name_transliterated": "Ilango Adigal",
+            "era": "2nd-5th century CE",
+            "region": "Chera Kingdom, South India"
+          },
+          "content": {
+            "ipfs_cid": "bafybeigvgzoolc3ddsymh6efzmifzmjzqbg44xlbdmoqp3hspbzxhc3nhe",
+            "sha256_hash": "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3f4a5b6c7d8e9f0a1b2",
+            "size_bytes": 2048,
+            "arweave_tx_id": "",
+            "mime_type": "text/plain",
+            "encoding": "utf-8"
+          },
+          "classification": {
+            "period": "classical",
+            "genre": "epic",
+            "tags": ["silappathikaram", "epic", "aimperum-kappiyangal", "puhar", "kannagi", "kovalan"],
+            "language": "Classical Tamil",
+            "script": "Tamil"
+          },
+          "rights": {
+            "license": "public_domain",
+            "is_public_domain": true,
+            "original_source_url": "https://www.projectmadurai.org/pm_etexts/utf8/pmuni0059_01.html"
+          },
+          "description": "The opening of the Puhar Canto of Silappathikaram, one of the five great Tamil epics (Aimperum Kappiyangal). Set in the Chola port city of Kaveri Poompattinnam. Introduces Kovalan and Kannagi. Composed by Ilango Adigal, a Jain monk who renounced his throne to create this masterwork.",
+          "is_verified": true,
+          "verified_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv",
+          "verified_at": "2026-06-01T00:00:00Z",
+          "block_height": 1,
+          "tx_hash": "GENESIS",
+          "timestamp": "2026-06-01T00:00:00Z",
+          "uploaded_by": "tamizhi1qypq38vgspktyxekxpj4a5p2pzwnee5mzk3xv"
+        }
+      ]
+    },
+    "nft": {
+      "nfts": []
+    }
+  }
+}

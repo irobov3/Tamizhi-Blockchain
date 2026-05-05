@@ -1,0 +1,56 @@
+name: Fuzz Tests
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Every Monday at 2am UTC
+  workflow_dispatch:
+    inputs:
+      fuzz_time:
+        description: 'Fuzz duration per function (e.g. 30s, 1m, 5m)'
+        required: false
+        default: '30s'
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - rewards
+          - nodes
+          - accesslog
+          - security
+          - literature
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+      - name: Run fuzz tests (${{ matrix.module }})
+        run: |
+          FUZZ_TIME="${{ github.event.inputs.fuzz_time || '30s' }}"
+          # Find all fuzz functions in the module
+          FUZZ_FUNCS=$(grep -h '^func Fuzz' x/${{ matrix.module }}/types/fuzz_test.go 2>/dev/null | sed 's/func \(Fuzz[^(]*\).*/\1/' || true)
+          if [ -z "$FUZZ_FUNCS" ]; then
+            echo "No fuzz functions found in x/${{ matrix.module }}/types/"
+            exit 0
+          fi
+          for fn in $FUZZ_FUNCS; do
+            echo "Fuzzing $fn for $FUZZ_TIME..."
+            CGO_ENABLED=0 go test ./x/${{ matrix.module }}/types/... \
+              -fuzz="^${fn}$" -fuzztime="$FUZZ_TIME" || {
+                echo "::error::Fuzz failure in $fn"
+                exit 1
+              }
+          done
+      - name: Upload fuzz corpus
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-corpus-${{ matrix.module }}
+          path: testdata/fuzz/
+          retention-days: 30
+        continue-on-error: true

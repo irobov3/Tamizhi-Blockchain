@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: tamizhi_explorer
+      POSTGRES_USER: tamizhi
+      POSTGRES_PASSWORD: tamizhi
+    ports:
+      - "5432:5432"
+    volumes:
+      - explorer-pg-data:/var/lib/postgresql/data
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tamizhi -d tamizhi_explorer"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  explorer-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node dist/api/server.js
+    environment:
+      DATABASE_URL: postgresql://tamizhi:tamizhi@postgres:5432/tamizhi_explorer
+      RPC_URL: http://host.docker.internal:26657
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  explorer-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node dist/indexer/main.js
+    environment:
+      DATABASE_URL: postgresql://tamizhi:tamizhi@postgres:5432/tamizhi_explorer
+      RPC_URL: http://host.docker.internal:26657
+      POLL_INTERVAL_MS: 3000
+      MAX_BLOCKS_PER_CYCLE: 100
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  explorer-pg-data:

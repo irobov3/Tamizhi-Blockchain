@@ -1,0 +1,252 @@
+# Tamizhi local testnet — 2 validator nodes + 1 seed node
+# Usage: docker-compose up -d
+version: "3.8"
+
+services:
+  # ── Chain initializer (runs once, then exits) ────────────────────────────
+  chain-init:
+    image: tamizhi:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tamizhi-init
+    command: >
+      sh -c "
+        set -e
+        CHAIN_ID=tamizhi-testnet-1
+        DENOM=utmz
+
+        # Check if already initialized (idempotent)
+        if [ -f /data/val1/config/genesis.json ] && [ -f /data/val2/config/genesis.json ]; then
+          echo 'Already initialized, skipping...'
+          exit 0
+        fi
+
+        # Init all three nodes
+        tamizhi init validator1 --chain-id $$CHAIN_ID --home /data/val1 --overwrite
+        tamizhi init validator2 --chain-id $$CHAIN_ID --home /data/val2 --overwrite
+        tamizhi init seed --chain-id $$CHAIN_ID --home /data/seed --overwrite
+
+        # Create keys
+        tamizhi keys add validator1 --keyring-backend test --home /data/val1 2>/dev/null
+        tamizhi keys add validator2 --keyring-backend test --home /data/val2 2>/dev/null
+
+        VAL1_ADDR=$$(tamizhi keys show validator1 --keyring-backend test --home /data/val1 -a)
+        VAL2_ADDR=$$(tamizhi keys show validator2 --keyring-backend test --home /data/val2 -a)
+
+        echo \"Val1 address: $$VAL1_ADDR\"
+        echo \"Val2 address: $$VAL2_ADDR\"
+
+        # Add genesis accounts (both to val1's genesis)
+        tamizhi genesis add-genesis-account $$VAL1_ADDR 500000000000000$$DENOM --home /data/val1
+        tamizhi genesis add-genesis-account $$VAL2_ADDR 500000000000000$$DENOM --home /data/val1
+
+        # Create gentxs for BOTH validators
+        tamizhi genesis gentx validator1 250000000000000$$DENOM \
+          --chain-id $$CHAIN_ID \
+          --keyring-backend test \
+          --home /data/val1
+
+        # For val2's gentx, we need val2's key but val1's genesis
+        # Copy val1's genesis to val2 first
+        cp /data/val1/config/genesis.json /data/val2/config/genesis.json
+        tamizhi genesis add-genesis-account $$VAL2_ADDR 500000000000000$$DENOM --home /data/val2 2>/dev/null || true
+        tamizhi genesis gentx validator2 250000000000000$$DENOM \
+          --chain-id $$CHAIN_ID \
+          --keyring-backend test \
+          --home /data/val2
+
+        # Copy val2's gentx to val1's gentxs dir
+        cp /data/val2/config/gentx/*.json /data/val1/config/gentx/
+
+        # Collect all gentxs
+        tamizhi genesis collect-gentxs --home /data/val1
+
+        # Get node IDs
+        VAL1_NODEID=$$(tamizhi tendermint show-node-id --home /data/val1)
+        VAL2_NODEID=$$(tamizhi tendermint show-node-id --home /data/val2)
+        SEED_NODEID=$$(tamizhi tendermint show-node-id --home /data/seed)
+
+        echo \"Val1 node ID: $$VAL1_NODEID\"
+        echo \"Val2 node ID: $$VAL2_NODEID\"
+
+        # Distribute final genesis
+        cp /data/val1/config/genesis.json /data/val2/config/genesis.json
+        cp /data/val1/config/genesis.json /data/seed/config/genesis.json
+
+        # Configure P2P peering
+        # Val1 peers with val2 and seed
+        sed -i \"s/persistent_peers = \\\"\\\"/persistent_peers = \\\"$$VAL2_NODEID@validator2:26656,$$SEED_NODEID@seed:26656\\\"/\" /data/val1/config/config.toml
+        # Val2 peers with val1 and seed
+        sed -i \"s/persistent_peers = \\\"\\\"/persistent_peers = \\\"$$VAL1_NODEID@validator1:26656,$$SEED_NODEID@seed:26656\\\"/\" /data/val2/config/config.toml
+        # Seed peers with both validators
+        sed -i \"s/persistent_peers = \\\"\\\"/persistent_peers = \\\"$$VAL1_NODEID@validator1:26656,$$VAL2_NODEID@validator2:26656\\\"/\" /data/seed/config/config.toml
+
+        # Set min gas prices
+        sed -i 's/minimum-gas-prices = \"\"/minimum-gas-prices = \"1000utmz\"/' /data/val1/config/app.toml
+        sed -i 's/minimum-gas-prices = \"\"/minimum-gas-prices = \"1000utmz\"/' /data/val2/config/app.toml
+
+        # Enable API and gRPC on val1
+        sed -i 's/^enable = false/enable = true/' /data/val1/config/app.toml
+
+        # Save node IDs for reference
+        echo \"$$VAL1_NODEID\" > /data/val1_nodeid.txt
+        echo \"$$VAL2_NODEID\" > /data/val2_nodeid.txt
+        echo \"$$SEED_NODEID\" > /data/seed_nodeid.txt
+
+        echo '=== Chain initialization complete! ==='
+        echo \"Val1: $$VAL1_NODEID@validator1:26656\"
+        echo \"Val2: $$VAL2_NODEID@validator2:26656\"
+        echo \"Seed: $$SEED_NODEID@seed:26656\"
+      "
+    volumes:
+      - chain-data:/data
+
+  # ── Validator 1 ──────────────────────────────────────────────────────────
+  validator1:
+    image: tamizhi:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tamizhi-val1
+    hostname: validator1
+    depends_on:
+      chain-init:
+        condition: service_completed_successfully
+    command: ["start", "--home", "/data/val1",
+              "--rpc.laddr", "tcp://0.0.0.0:26657",
+              "--p2p.laddr", "tcp://0.0.0.0:26656",
+              "--minimum-gas-prices", "1000utmz",
+              "--api.enable",
+              "--grpc.enable"]
+    ports:
+      - "26656:26656"   # P2P
+      - "26657:26657"   # RPC
+      - "1317:1317"     # REST
+      - "9090:9090"     # gRPC
+    volumes:
+      - chain-data:/data
+    restart: unless-stopped
+    networks:
+      - tamizhi-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:26657/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  # ── Validator 2 ──────────────────────────────────────────────────────────
+  validator2:
+    image: tamizhi:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tamizhi-val2
+    hostname: validator2
+    depends_on:
+      chain-init:
+        condition: service_completed_successfully
+    command: ["start", "--home", "/data/val2",
+              "--rpc.laddr", "tcp://0.0.0.0:26657",
+              "--p2p.laddr", "tcp://0.0.0.0:26656",
+              "--minimum-gas-prices", "1000utmz"]
+    ports:
+      - "26660:26656"   # P2P
+      - "26661:26657"   # RPC
+      - "1318:1317"     # REST
+      - "9091:9090"     # gRPC
+    volumes:
+      - chain-data:/data
+    restart: unless-stopped
+    networks:
+      - tamizhi-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:26657/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  # ── Seed node ────────────────────────────────────────────────────────────
+  seed:
+    image: tamizhi:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tamizhi-seed
+    hostname: seed
+    depends_on:
+      chain-init:
+        condition: service_completed_successfully
+    command: ["start", "--home", "/data/seed", "--p2p.seed_mode=true", "--rpc.laddr", "tcp://0.0.0.0:26657", "--p2p.laddr", "tcp://0.0.0.0:26656"]
+    ports:
+      - "26662:26656"   # P2P
+    volumes:
+      - chain-data:/data
+    restart: unless-stopped
+    networks:
+      - tamizhi-net
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: tamizhi-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts:/etc/prometheus/alerts
+      - prometheus-data:/prometheus
+    ports:
+      - "9092:9090"
+    command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.retention.time=30d
+    restart: unless-stopped
+    networks:
+      - tamizhi-net
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: tamizhi-alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+    networks:
+      - tamizhi-net
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: tamizhi-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: tamizhi
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/tamizhi-chain.json
+    volumes:
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - tamizhi-net
+
+  envoy-grpc-web:
+    build:
+      context: ./envoy
+    environment:
+      GRPC_HOST: validator1
+    ports:
+      - "8080:8080"    # gRPC-Web
+      - "9901:9901"    # Envoy admin
+    depends_on:
+      - validator1
+    networks:
+      - tamizhi-net
+    hostname: envoy-grpc-web
+
+volumes:
+  chain-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  tamizhi-net:
+    driver: bridge

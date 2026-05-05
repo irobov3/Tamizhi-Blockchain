@@ -1,0 +1,15 @@
+# Global owners
+* @tamizhi-core
+
+# Blockchain modules
+/x/ @tamizhi-core
+/app/ @tamizhi-core
+/contracts/ @tamizhi-core
+
+# SDK and integrations
+/sdk/ @tamizhi-frontend
+
+# Infrastructure
+/docker-compose.yml @tamizhi-devops
+/helm/ @tamizhi-devops
+/.github/ @tamizhi-devops

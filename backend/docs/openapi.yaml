@@ -1,0 +1,495 @@
+openapi: 3.0.3
+info:
+  title: Tamizhi Blockchain API
+  description: |
+    REST API for the Tamizhi blockchain — a Cosmos SDK Layer-1 chain.
+
+    **Base URL:** `https://api.tamizhi.io`
+    **Testnet:**  `http://localhost:1317`
+
+    All amounts are in `utmc` (micro-TamilCoin). 1 TMC = 1,000,000 utmc.
+  version: "1.0.0"
+  contact:
+    name: Tamizhi Team
+    url: https://tamizhi.io
+
+servers:
+  - url: http://localhost:1317
+    description: Local testnet
+  - url: https://api.tamizhi.io
+    description: Production
+
+tags:
+  - name: Bank
+    description: Token transfers and balances
+  - name: Staking
+    description: Validators and delegations
+  - name: Governance
+    description: Proposals and voting
+  - name: Identity
+    description: Custom — employee ↔ wallet mapping
+  - name: AccessLog
+    description: Custom — file access event logging
+  - name: Rewards
+    description: Custom — TMC reward issuance
+  - name: IPFS
+    description: File storage via IPFS API (port 8090)
+
+paths:
+  # ── Bank ──────────────────────────────────────────────────────────────────
+  /cosmos/bank/v1beta1/balances/{address}:
+    get:
+      tags: [Bank]
+      summary: Get all token balances for an address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string, example: "tamizhi1abc..." }
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balances:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Coin"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+
+  /cosmos/bank/v1beta1/supply:
+    get:
+      tags: [Bank]
+      summary: Get total token supply
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  supply:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Coin"
+
+  # ── Staking ───────────────────────────────────────────────────────────────
+  /cosmos/staking/v1beta1/validators:
+    get:
+      tags: [Staking]
+      summary: List validators
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [BOND_STATUS_BONDED, BOND_STATUS_UNBONDED, BOND_STATUS_UNBONDING]
+        - name: pagination.limit
+          in: query
+          schema: { type: integer, default: 100 }
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  validators:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Validator"
+
+  /cosmos/staking/v1beta1/validators/{validator_addr}/delegations:
+    get:
+      tags: [Staking]
+      summary: Get delegations for a validator
+      parameters:
+        - name: validator_addr
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+
+  /cosmos/staking/v1beta1/delegators/{delegator_addr}/delegations:
+    get:
+      tags: [Staking]
+      summary: Get delegations for a delegator
+      parameters:
+        - name: delegator_addr
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+
+  # ── Governance ────────────────────────────────────────────────────────────
+  /cosmos/gov/v1/proposals:
+    get:
+      tags: [Governance]
+      summary: List governance proposals
+      parameters:
+        - name: proposal_status
+          in: query
+          schema:
+            type: string
+            enum: [PROPOSAL_STATUS_VOTING_PERIOD, PROPOSAL_STATUS_PASSED, PROPOSAL_STATUS_REJECTED]
+      responses:
+        "200":
+          description: Success
+
+  /cosmos/gov/v1/proposals/{proposal_id}:
+    get:
+      tags: [Governance]
+      summary: Get a specific proposal
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+
+  /cosmos/gov/v1/proposals/{proposal_id}/votes:
+    get:
+      tags: [Governance]
+      summary: List votes for a proposal
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+
+  # ── Transactions ──────────────────────────────────────────────────────────
+  /cosmos/tx/v1beta1/txs:
+    get:
+      tags: [Bank]
+      summary: Search transactions by event
+      parameters:
+        - name: events
+          in: query
+          required: true
+          schema: { type: string, example: "message.sender='tamizhi1abc...'" }
+        - name: pagination.limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: order_by
+          in: query
+          schema: { type: string, enum: [ORDER_BY_ASC, ORDER_BY_DESC] }
+      responses:
+        "200":
+          description: Success
+    post:
+      tags: [Bank]
+      summary: Broadcast a signed transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tx_bytes:
+                  type: string
+                  description: Base64-encoded signed tx bytes
+                mode:
+                  type: string
+                  enum: [BROADCAST_MODE_SYNC, BROADCAST_MODE_ASYNC, BROADCAST_MODE_BLOCK]
+      responses:
+        "200":
+          description: Broadcast result
+
+  /cosmos/tx/v1beta1/txs/{hash}:
+    get:
+      tags: [Bank]
+      summary: Get transaction by hash
+      parameters:
+        - name: hash
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+
+  # ── Custom: Identity ──────────────────────────────────────────────────────
+  /tamizhi/identity/v1/employee/{employee_id}:
+    get:
+      tags: [Identity]
+      summary: Get identity by employee ID
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema: { type: string, example: "EMP-001" }
+      responses:
+        "200":
+          description: Identity record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityRecord"
+        "404":
+          description: Employee not found
+
+  /tamizhi/identity/v1/address/{address}:
+    get:
+      tags: [Identity]
+      summary: Get identity by wallet address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Identity record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityRecord"
+
+  /tamizhi/identity/v1/identities:
+    get:
+      tags: [Identity]
+      summary: List all registered identities
+      responses:
+        "200":
+          description: List of identity records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  identities:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/IdentityRecord"
+
+  # ── Custom: AccessLog ─────────────────────────────────────────────────────
+  /tamizhi/accesslog/v1/log/{id}:
+    get:
+      tags: [AccessLog]
+      summary: Get access log entry by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Access log entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessLogEntry"
+
+  /tamizhi/accesslog/v1/employee/{employee_id}:
+    get:
+      tags: [AccessLog]
+      summary: Get all access logs for an employee
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of log entries
+
+  /tamizhi/accesslog/v1/logs:
+    get:
+      tags: [AccessLog]
+      summary: List all access log entries
+      responses:
+        "200":
+          description: All access logs
+
+  # ── Custom: Rewards ────────────────────────────────────────────────────────
+  /tamizhi/rewards/v1/rules:
+    get:
+      tags: [Rewards]
+      summary: List all reward rules
+      responses:
+        "200":
+          description: List of reward rules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RewardRule"
+
+  /tamizhi/rewards/v1/records/{employee_id}:
+    get:
+      tags: [Rewards]
+      summary: Get reward history for an employee
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Reward records
+
+  # ── IPFS API (port 8090) ──────────────────────────────────────────────────
+  /upload:
+    post:
+      tags: [IPFS]
+      summary: Upload a file to IPFS
+      description: Returns the CID and SHA-256 hash. Call this endpoint at port 8090.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Upload result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IPFSUploadResponse"
+
+  /retrieve/{cid}:
+    get:
+      tags: [IPFS]
+      summary: Retrieve a file from IPFS by CID
+      parameters:
+        - name: cid
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: File content
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /hash:
+    post:
+      tags: [IPFS]
+      summary: Compute SHA-256 hash without uploading
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Hash result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  file_name: { type: string }
+                  size: { type: integer }
+                  sha256: { type: string }
+
+components:
+  schemas:
+    Coin:
+      type: object
+      properties:
+        denom: { type: string, example: "utmc" }
+        amount: { type: string, example: "1000000" }
+
+    Pagination:
+      type: object
+      properties:
+        next_key: { type: string }
+        total: { type: string }
+
+    Validator:
+      type: object
+      properties:
+        operator_address: { type: string }
+        consensus_pubkey: { type: object }
+        status: { type: string }
+        tokens: { type: string }
+        description:
+          type: object
+          properties:
+            moniker: { type: string }
+            website: { type: string }
+            details: { type: string }
+        commission:
+          type: object
+          properties:
+            commission_rates:
+              type: object
+              properties:
+                rate: { type: string }
+                max_rate: { type: string }
+
+    IdentityRecord:
+      type: object
+      properties:
+        employee_id: { type: string, example: "EMP-001" }
+        address: { type: string, example: "tamizhi1abc..." }
+        name: { type: string, example: "Arun Kumar" }
+        department: { type: string, example: "Engineering" }
+        active: { type: boolean }
+        created_at: { type: integer, format: int64 }
+
+    AccessLogEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        employee_id: { type: string }
+        file_hash: { type: string, description: "SHA-256 of the file" }
+        file_name: { type: string }
+        action: { type: string, enum: [READ, WRITE, DELETE, SHARE] }
+        ipfs_cid: { type: string }
+        timestamp: { type: integer, format: int64 }
+        block_height: { type: integer, format: int64 }
+
+    RewardRule:
+      type: object
+      properties:
+        id: { type: string }
+        activity: { type: string, enum: [FILE_UPLOAD, FILE_SHARE, LOGIN, CUSTOM] }
+        amount:
+          $ref: "#/components/schemas/Coin"
+        description: { type: string }
+        active: { type: boolean }
+        max_per_day: { type: integer }
+
+    IPFSUploadResponse:
+      type: object
+      properties:
+        cid: { type: string, example: "QmXyz..." }
+        file_hash: { type: string, description: "SHA-256 hex" }
+        file_name: { type: string }
+        size: { type: integer }
+        gateway: { type: string, example: "http://localhost:8080/ipfs/QmXyz..." }

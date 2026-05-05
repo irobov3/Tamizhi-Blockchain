@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+  external_labels:
+    chain: tamizhi-testnet-1
+
+rule_files:
+  - "alerts/tamizhi.rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: 'tamizhi-chain'
+    static_configs:
+      - targets: ['validator1:26660', 'validator2:26660']
+    metrics_path: /metrics
+
+  - job_name: 'tamizhi-app'
+    static_configs:
+      - targets: ['validator1:1317']
+    metrics_path: /metrics
+
+  - job_name: 'tamizhi-explorer'
+    static_configs:
+      - targets: ['explorer-api:3001']
+    metrics_path: /metrics
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['validator1:9100', 'validator2:9100']

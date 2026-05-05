@@ -1,0 +1,53 @@
+syntax = "proto3";
+package tamizhi.rewards.v1;
+
+option go_package = "github.com/tamizhi/chain/x/rewards/types";
+
+import "tamizhi/rewards/v1/tx.proto";
+
+// ── Requests / Responses ─────────────────────────────────────────────────────
+
+message QueryListRewardRulesRequest {}
+
+message QueryListRewardRulesResponse {
+  repeated RewardRule rules = 1;
+}
+
+message QueryGetRewardRuleRequest {
+  string rule_id = 1;
+}
+
+message QueryGetRewardRuleResponse {
+  RewardRule rule = 1;
+}
+
+message RewardRecord {
+  uint64 id          = 1;
+  string employee_id = 2;
+  string address     = 3;
+  string rule_id     = 4;
+  string activity    = 5;
+  Coin   amount      = 6;
+  string memo        = 7;
+  int64  timestamp   = 8;
+  int64  block_height = 9;
+}
+
+message QueryGetRewardRecordsRequest {
+  string employee_id = 1;
+}
+
+message QueryGetRewardRecordsResponse {
+  repeated RewardRecord records = 1;
+}
+
+// ── Service ──────────────────────────────────────────────────────────────────
+
+service Query {
+  // GET /tamizhi/rewards/v1/rules
+  rpc ListRewardRules(QueryListRewardRulesRequest) returns (QueryListRewardRulesResponse);
+  // GET /tamizhi/rewards/v1/rules/{rule_id}
+  rpc GetRewardRule(QueryGetRewardRuleRequest) returns (QueryGetRewardRuleResponse);
+  // GET /tamizhi/rewards/v1/records/{employee_id}
+  rpc GetRewardRecords(QueryGetRewardRecordsRequest) returns (QueryGetRewardRecordsResponse);
+}

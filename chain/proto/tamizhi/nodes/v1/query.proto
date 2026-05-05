@@ -1,0 +1,70 @@
+syntax = "proto3";
+package tamizhi.nodes.v1;
+
+option go_package = "github.com/tamizhi/chain/x/nodes/types";
+
+import "gogoproto/gogo.proto";
+import "tamizhi/nodes/v1/tx.proto";
+
+// ── Shared types ─────────────────────────────────────────────────────────────
+
+message ServiceNode {
+  string id              = 1;
+  string owner_address   = 2 [(gogoproto.customname) = "OwnerAddress"];
+  string endpoint        = 3;
+  Coin   staked_amount   = 4 [(gogoproto.customname) = "StakedAmount"];
+  string status          = 5;
+  string swarm_id        = 6 [(gogoproto.customname) = "SwarmID"];
+  int64  registered_at   = 7 [(gogoproto.customname) = "RegisteredAt"];
+  int64  last_reward_at  = 8 [(gogoproto.customname) = "LastRewardAt"];
+  uint64 messages_stored = 9 [(gogoproto.customname) = "MessagesStored"];
+  uint64 uptime_score    = 10 [(gogoproto.customname) = "UptimeScore"];
+}
+
+message Swarm {
+  string          id       = 1;
+  repeated string node_ids = 2 [(gogoproto.customname) = "NodeIDs"];
+}
+
+// ── Requests / Responses ─────────────────────────────────────────────────────
+
+message QueryGetNodeRequest {
+  string node_id = 1 [(gogoproto.customname) = "NodeID"];
+}
+
+message QueryGetNodeResponse {
+  ServiceNode node = 1;
+}
+
+message QueryListActiveNodesRequest {}
+
+message QueryListActiveNodesResponse {
+  repeated ServiceNode nodes = 1;
+}
+
+message QueryListNodesBySwarmRequest {
+  string swarm_id = 1 [(gogoproto.customname) = "SwarmID"];
+}
+
+message QueryListNodesBySwarmResponse {
+  repeated ServiceNode nodes = 1;
+}
+
+message QueryGetSwarmsRequest {}
+
+message QueryGetSwarmsResponse {
+  repeated Swarm swarms = 1;
+}
+
+// ── Service ──────────────────────────────────────────────────────────────────
+
+service Query {
+  // GET /tamizhi/nodes/v1/nodes
+  rpc ListActiveNodes(QueryListActiveNodesRequest) returns (QueryListActiveNodesResponse);
+  // GET /tamizhi/nodes/v1/nodes/{node_id}
+  rpc GetNode(QueryGetNodeRequest) returns (QueryGetNodeResponse);
+  // GET /tamizhi/nodes/v1/swarms
+  rpc GetSwarms(QueryGetSwarmsRequest) returns (QueryGetSwarmsResponse);
+  // GET /tamizhi/nodes/v1/swarms/{swarm_id}/nodes
+  rpc ListNodesBySwarm(QueryListNodesBySwarmRequest) returns (QueryListNodesBySwarmResponse);
+}

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Tamizhi</string>
+    <string name="app_tagline">தமிழ் சங்ககாலத்திலிருந்து டிஜிட்டல் யுகம் வரை</string>
+    <string name="app_tagline_en">From the Sangam Age to the Digital Era</string>
+
+    <!-- Bottom Navigation Tabs -->
+    <string name="tab_wallet">Wallet</string>
+    <string name="tab_wallet_ta">பணப்பை</string>
+    <string name="tab_messenger">Messages</string>
+    <string name="tab_messenger_ta">செய்திகள்</string>
+    <string name="tab_literature">Literature</string>
+    <string name="tab_literature_ta">இலக்கியம்</string>
+    <string name="tab_ai">AI</string>
+    <string name="tab_ai_ta">AI</string>
+
+    <!-- Wallet Screen -->
+    <string name="wallet_title">பணப்பை</string>
+    <string name="wallet_balance">இருப்பு</string>
+    <string name="wallet_address">முகவரி</string>
+    <string name="wallet_send">அனுப்பு</string>
+    <string name="wallet_receive">பெறு</string>
+    <string name="wallet_transactions">பரிவர்த்தனைகள்</string>
+    <string name="wallet_no_transactions">பரிவர்த்தனைகள் எதுவும் இல்லை</string>
+    <string name="wallet_copy_address">முகவரியை நகலெடு</string>
+    <string name="wallet_address_copied">முகவரி நகலெடுக்கப்பட்டது</string>
+    <string name="wallet_refresh">புதுப்பி</string>
+
+    <!-- Send Screen -->
+    <string name="send_title">TMZ அனுப்பு</string>
+    <string name="send_recipient_address">பெறுநர் முகவரி</string>
+    <string name="send_amount">தொகை (TMZ)</string>
+    <string name="send_memo">குறிப்பு (விருப்பமானது)</string>
+    <string name="send_fee">கட்டணம்</string>
+    <string name="send_confirm">உறுதிப்படுத்து</string>
+    <string name="send_success">பரிவர்த்தனை வெற்றிகரமாக அனுப்பப்பட்டது</string>
+    <string name="send_insufficient_balance">போதுமான இருப்பு இல்லை</string>
+    <string name="send_invalid_address">தவறான முகவரி வடிவம்</string>
+    <string name="send_invalid_amount">தவறான தொகை</string>
+
+    <!-- Receive Screen -->
+    <string name="receive_title">TMZ பெறு</string>
+    <string name="receive_qr_hint">இந்த QR குறியீட்டை ஸ்கேன் செய்யவும்</string>
+    <string name="receive_share_address">முகவரியை பகிர்</string>
+    <string name="receive_your_address">உங்கள் முகவரி</string>
+
+    <!-- Messenger Screen -->
+    <string name="messenger_title">செய்திகள்</string>
+    <string name="messenger_new_conversation">புதிய உரையாடல்</string>
+    <string name="messenger_empty_state">நேரடி உரையாடல் தொடங்குங்கள்</string>
+    <string name="messenger_empty_subtitle">Start a secure, end-to-end encrypted conversation</string>
+    <string name="messenger_recipient_address">பெறுநர் முகவரி</string>
+    <string name="messenger_start">தொடங்குங்கள்</string>
+    <string name="messenger_type_message">செய்தி எழுதுங்கள்...</string>
+    <string name="messenger_encrypted">மறைகுறியாக்கப்பட்டது</string>
+    <string name="messenger_send">அனுப்பு</string>
+    <string name="messenger_delete_conversation">உரையாடலை நீக்கு</string>
+    <string name="messenger_no_messages">செய்திகள் இல்லை</string>
+
+    <!-- Literature Screen -->
+    <string name="literature_title">இலக்கியம்</string>
+    <string name="literature_search_hint">தேடுங்கள்... Search Tamil literature</string>
+    <string name="literature_all_categories">அனைத்தும்</string>
+    <string name="literature_upload">பதிவேற்று</string>
+    <string name="literature_empty">நூல்கள் எதுவும் இல்லை</string>
+    <string name="literature_verified">சங்கிலி மூலம் சரிபார்க்கப்பட்டது</string>
+    <string name="literature_chain_proof">சங்கிலி சான்று</string>
+    <string name="literature_block_height">தொகுதி உயரம்</string>
+    <string name="literature_verses">பாடல்கள்</string>
+    <string name="literature_commentary">உரை</string>
+    <string name="literature_ipfs_link">IPFS இணைப்பு</string>
+    <string name="literature_author">ஆசிரியர்</string>
+
+    <!-- AI Screen -->
+    <string name="ai_title">Tamizhi AI</string>
+    <string name="ai_welcome_ta">வணக்கம்! நான் Tamizhi AI</string>
+    <string name="ai_welcome_en">Hello! I\'m Tamizhi AI</string>
+    <string name="ai_subtitle_ta">தமிழ் இலக்கியம், கலாச்சாரம் மற்றும் வரலாறு பற்றி கேட்கலாம்</string>
+    <string name="ai_subtitle_en">Ask me about Tamil literature, culture, and history</string>
+    <string name="ai_type_ta">கேள்வி கேளுங்கள்...</string>
+    <string name="ai_type_en">Ask a question...</string>
+    <string name="ai_example_prompts">உதாரண கேள்விகள்</string>
+    <string name="ai_tamil_mode">தமிழ் முறை</string>
+    <string name="ai_english_mode">English mode</string>
+
+    <!-- Onboarding Screen -->
+    <string name="onboarding_create_wallet">புதிய பணப்பை உருவாக்கு</string>
+    <string name="onboarding_import_wallet">ஏற்கனவே உள்ள பணப்பை இறக்கு</string>
+    <string name="onboarding_mnemonic_title">உங்கள் மீட்பு சொற்றொடர்</string>
+    <string name="onboarding_mnemonic_copy">எல்லாவற்றையும் நகலெடு</string>
+    <string name="onboarding_saved_phrase">நான் என் சொற்றொடரை பாதுகாப்பாக சேமித்துவிட்டேன்</string>
+    <string name="onboarding_continue">தொடர்க</string>
+    <string name="onboarding_back">பின்சேல்</string>
+    <string name="onboarding_import_title">மீட்பு சொற்றொடர் உள்ளிடுக</string>
+    <string name="onboarding_import_btn">இறக்கு</string>
+    <string name="onboarding_pin_setup">PIN அமைக்கவும்</string>
+    <string name="onboarding_pin_confirm">PIN உறுதிப்படுத்தவும்</string>
+    <string name="onboarding_pin_mismatch">PINs do not match. Please try again.</string>
+    <string name="onboarding_warning">இந்த சொற்களை யாரிடமும் பகிர வேண்டாம்.</string>
+
+    <!-- General -->
+    <string name="loading">ஏற்றுகிறது...</string>
+    <string name="error_generic">பிழை ஏற்பட்டது</string>
+    <string name="error_network">நெட்வொர்க் பிழை. மீண்டும் முயற்சிக்கவும்.</string>
+    <string name="retry">மீண்டும் முயற்சி</string>
+    <string name="dismiss">மூடு</string>
+    <string name="confirm">உறுதிப்படுத்து</string>
+    <string name="cancel">ரத்து செய்</string>
+    <string name="save">சேமி</string>
+    <string name="delete">நீக்கு</string>
+    <string name="share">பகிர்</string>
+    <string name="copy">நகலெடு</string>
+    <string name="search">தேடு</string>
+    <string name="no_data">தரவு இல்லை</string>
+    <string name="encrypted_badge">End-to-end encrypted · Non-custodial</string>
+
+    <!-- Status -->
+    <string name="status_confirmed">உறுதிப்பட்டது</string>
+    <string name="status_pending">நிலுவையில்</string>
+    <string name="status_failed">தோல்வியுற்றது</string>
+    <string name="status_sent">அனுப்பப்பட்டது</string>
+    <string name="status_received">பெறப்பட்டது</string>
+    <string name="status_delivered">வழங்கப்பட்டது</string>
+    <string name="status_read">படிக்கப்பட்டது</string>
+
+    <!-- Categories -->
+    <string name="category_thirukural">திருக்குறள்</string>
+    <string name="category_sangam">சங்க இலக்கியம்</string>
+    <string name="category_epic">காப்பியங்கள்</string>
+    <string name="category_devotional">பக்தி இலக்கியம்</string>
+    <string name="category_modern">நவீன இலக்கியம்</string>
+
+    <!-- Accessibility -->
+    <string name="cd_back">Back</string>
+    <string name="cd_copy">Copy to clipboard</string>
+    <string name="cd_send">Send</string>
+    <string name="cd_verified">Verified on blockchain</string>
+    <string name="cd_qr_code">QR Code</string>
+    <string name="cd_toggle_language">Toggle language</string>
+    <string name="cd_new_conversation">New conversation</string>
+    <string name="cd_upload_work">Upload literary work</string>
+</resources>

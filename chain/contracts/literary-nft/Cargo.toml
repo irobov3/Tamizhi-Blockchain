@@ -1,0 +1,33 @@
+[package]
+name = "literary-nft"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+library = []
+
+[dependencies]
+cosmwasm-std = { version = "2.1.3", features = ["stargate"] }
+cosmwasm-schema = "2.3.2"
+cw-storage-plus = "2.0.0"
+cw2 = "2.0.0"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+thiserror = "1.0"
+
+[dev-dependencies]
+# cosmwasm-vm is used for Wasm integration tests; unit tests use cosmwasm-std mock helpers
+# cosmwasm-vm = { version = "2.1.4", features = ["iterator"] }
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = "abort"
+incremental = false
+overflow-checks = true

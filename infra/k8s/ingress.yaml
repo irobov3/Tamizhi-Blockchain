@@ -1,0 +1,314 @@
+# ============================================================
+# Tamizhi Platform — nginx Ingress
+# Prerequisites:
+#   - nginx Ingress Controller installed in the cluster
+#   - cert-manager installed with a ClusterIssuer named "letsencrypt-prod"
+#
+# Routing map:
+#   tamizhi.network         → web service       (port 3000)
+#   api.tamizhi.network     → backend service   (port 3001)
+#   rpc.tamizhi.network     → chain rpc         (port 26657)
+#   rest.tamizhi.network    → chain rest        (port 1317)
+#   ai.tamizhi.network      → ai service        (port 8000)
+#   msg.tamizhi.network     → messaging         (port 4000, WebSocket)
+#   storage.tamizhi.network → storage service   (port 5000)
+# ============================================================
+
+# ─────────────────────────────────────────
+# Web App Ingress — tamizhi.network
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+  namespace: tamizhi
+  labels:
+    app: web
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://tamizhi.network"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+spec:
+  tls:
+    - hosts:
+        - tamizhi.network
+      secretName: tamizhi-network-tls
+  rules:
+    - host: tamizhi.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-service
+                port:
+                  number: 3000
+
+---
+# ─────────────────────────────────────────
+# Backend API Ingress — api.tamizhi.network
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  namespace: tamizhi
+  labels:
+    app: backend
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "55m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://tamizhi.network"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+spec:
+  tls:
+    - hosts:
+        - api.tamizhi.network
+      secretName: api-tamizhi-network-tls
+  rules:
+    - host: api.tamizhi.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 3001
+
+---
+# ─────────────────────────────────────────
+# Chain RPC Ingress — rpc.tamizhi.network
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chain-rpc-ingress
+  namespace: tamizhi
+  labels:
+    app: chain
+    app.kubernetes.io/name: chain
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    # WebSocket support for CometBFT subscriptions
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  tls:
+    - hosts:
+        - rpc.tamizhi.network
+      secretName: rpc-tamizhi-network-tls
+  rules:
+    - host: rpc.tamizhi.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chain-service
+                port:
+                  number: 26657
+
+---
+# ─────────────────────────────────────────
+# Chain REST Ingress — rest.tamizhi.network
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chain-rest-ingress
+  namespace: tamizhi
+  labels:
+    app: chain
+    app.kubernetes.io/name: chain
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+spec:
+  tls:
+    - hosts:
+        - rest.tamizhi.network
+      secretName: rest-tamizhi-network-tls
+  rules:
+    - host: rest.tamizhi.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chain-service
+                port:
+                  number: 1317
+
+---
+# ─────────────────────────────────────────
+# AI Service Ingress — ai.tamizhi.network
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-ingress
+  namespace: tamizhi
+  labels:
+    app: ai
+    app.kubernetes.io/name: ai
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Longer timeouts for LLM inference
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://tamizhi.network"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+spec:
+  tls:
+    - hosts:
+        - ai.tamizhi.network
+      secretName: ai-tamizhi-network-tls
+  rules:
+    - host: ai.tamizhi.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 8000
+
+---
+# ─────────────────────────────────────────
+# Messaging Ingress — msg.tamizhi.network
+# WebSocket upgrade + sticky sessions required for Socket.io
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: messaging-ingress
+  namespace: tamizhi
+  labels:
+    app: messaging
+    app.kubernetes.io/name: messaging
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Sticky sessions — required for Socket.io multi-replica setup
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "balanced"
+    nginx.ingress.kubernetes.io/session-cookie-name: "TAMIZHI_MSG_STICKY"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
+    # WebSocket upgrade
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+    # Long timeouts for persistent connections
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  tls:
+    - hosts:
+        - msg.tamizhi.network
+      secretName: msg-tamizhi-network-tls
+  rules:
+    - host: msg.tamizhi.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: messaging-service
+                port:
+                  number: 4000
+
+---
+# ─────────────────────────────────────────
+# Storage Ingress — storage.tamizhi.network
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: storage-ingress
+  namespace: tamizhi
+  labels:
+    app: storage
+    app.kubernetes.io/name: storage
+    app.kubernetes.io/part-of: tamizhi
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Allow large file uploads (50MB)
+    nginx.ingress.kubernetes.io/proxy-body-size: "55m"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://tamizhi.network"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+spec:
+  tls:
+    - hosts:
+        - storage.tamizhi.network
+      secretName: storage-tamizhi-network-tls
+  rules:
+    - host: storage.tamizhi.network
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: storage-service
+                port:
+                  number: 5000

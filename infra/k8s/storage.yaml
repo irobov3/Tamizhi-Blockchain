@@ -1,0 +1,135 @@
+# ============================================================
+# Tamizhi Storage Service (IPFS wrapper) — Kubernetes Manifests
+# Includes: ConfigMap, Deployment, Service
+# ============================================================
+
+# ─────────────────────────────────────────
+# Storage Service — ConfigMap
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: storage-config
+  namespace: tamizhi
+  labels:
+    app.kubernetes.io/name: storage
+    app.kubernetes.io/part-of: tamizhi
+data:
+  PORT: "5000"
+  NODE_ENV: "production"
+  # Assumes an IPFS Kubo node is reachable within the cluster.
+  # Deploy ipfs/kubo separately or use a managed IPFS pinning service
+  # and override IPFS_NODE_URL via a Secret if needed.
+  IPFS_NODE_URL: "http://ipfs-service:5001"
+  IPFS_GATEWAY: "http://ipfs-service:8080/ipfs"
+  MAX_FILE_SIZE_MB: "50"
+  ALLOWED_MIME_TYPES: "text/plain,application/pdf,text/html,image/png,image/jpeg"
+
+---
+# ─────────────────────────────────────────
+# Storage Service — Deployment
+# ─────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage
+  namespace: tamizhi
+  labels:
+    app: storage
+    app.kubernetes.io/name: storage
+    app.kubernetes.io/part-of: tamizhi
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: storage
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: storage
+        app.kubernetes.io/name: storage
+        app.kubernetes.io/part-of: tamizhi
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - storage
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: storage
+          image: tamizhi/storage:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: storage-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+      terminationGracePeriodSeconds: 30
+
+---
+# ─────────────────────────────────────────
+# Storage Service — ClusterIP Service
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage-service
+  namespace: tamizhi
+  labels:
+    app: storage
+    app.kubernetes.io/name: storage
+    app.kubernetes.io/part-of: tamizhi
+spec:
+  type: ClusterIP
+  selector:
+    app: storage
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      protocol: TCP

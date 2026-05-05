@@ -1,0 +1,60 @@
+syntax = "proto3";
+package tamizhi.messaging.v1;
+
+option go_package = "github.com/tamizhi/chain/x/messaging/types";
+
+import "gogoproto/gogo.proto";
+
+message MsgRegisterSessionID {
+  string wallet_address  = 1 [(gogoproto.customname) = "WalletAddress"];
+  string session_pub_key = 2 [(gogoproto.customname) = "SessionPubKey"];
+  string display_name    = 3 [(gogoproto.customname) = "DisplayName"];
+}
+
+message MsgRegisterSessionIDResponse {
+  string session_pub_key = 1 [(gogoproto.customname) = "SessionPubKey"];
+}
+
+message MsgUpdateSessionID {
+  string creator         = 1;
+  string session_pub_key = 2 [(gogoproto.customname) = "SessionPubKey"];
+  string display_name    = 3 [(gogoproto.customname) = "DisplayName"];
+  string avatar_ipfs     = 4 [(gogoproto.customname) = "AvatarIPFS"];
+}
+
+message MsgUpdateSessionIDResponse {}
+
+message MsgCreateGroup {
+  string creator     = 1;
+  string name        = 2;
+  string description = 3;
+  bool   encrypted   = 4;
+}
+
+message MsgCreateGroupResponse {
+  string group_id = 1 [(gogoproto.customname) = "GroupID"];
+}
+
+message MsgAddGroupMember {
+  string creator                = 1;
+  string group_id               = 2 [(gogoproto.customname) = "GroupID"];
+  string member_session_pub_key = 3 [(gogoproto.customname) = "MemberSessionPubKey"];
+}
+
+message MsgAddGroupMemberResponse {}
+
+message MsgRemoveGroupMember {
+  string creator                = 1;
+  string group_id               = 2 [(gogoproto.customname) = "GroupID"];
+  string member_session_pub_key = 3 [(gogoproto.customname) = "MemberSessionPubKey"];
+}
+
+message MsgRemoveGroupMemberResponse {}
+
+service Msg {
+  rpc RegisterSessionID(MsgRegisterSessionID) returns (MsgRegisterSessionIDResponse);
+  rpc UpdateSessionID(MsgUpdateSessionID) returns (MsgUpdateSessionIDResponse);
+  rpc CreateGroup(MsgCreateGroup) returns (MsgCreateGroupResponse);
+  rpc AddGroupMember(MsgAddGroupMember) returns (MsgAddGroupMemberResponse);
+  rpc RemoveGroupMember(MsgRemoveGroupMember) returns (MsgRemoveGroupMemberResponse);
+}

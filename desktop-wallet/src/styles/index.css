@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #13092e;
+  color: #fdf6e3;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  user-select: text;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 160, 23, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 160, 23, 0.55);
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gold text-indigo-deep font-semibold px-4 py-2 rounded-lg
+           shadow-gold hover:bg-gold-bright transition disabled:opacity-50
+           disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-indigo-mid text-cream font-medium px-4 py-2 rounded-lg
+           border border-gold/30 hover:border-gold transition
+           disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply text-cream/80 hover:text-gold transition;
+  }
+  .card {
+    @apply bg-indigo-mid/40 backdrop-blur rounded-xl border border-gold/15
+           shadow-lg p-5;
+  }
+  .input {
+    @apply w-full bg-indigo-night border border-gold/20 rounded-lg
+           px-3 py-2 text-cream placeholder:text-cream/40
+           focus:border-gold focus:outline-none transition;
+  }
+  .label {
+    @apply block text-sm font-medium text-cream/70 mb-1;
+  }
+  .pill {
+    @apply text-xs px-2 py-0.5 rounded-full bg-indigo-deep border border-gold/30
+           text-gold;
+  }
+}

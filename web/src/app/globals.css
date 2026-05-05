@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Noto+Sans+Tamil:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #FFFFFF;
+    --foreground: #1A1A1B;
+    --primary: #EE2E31;
+    --accent: #FFD700;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    overflow-x: hidden;
+    @apply font-sans;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  .premium-card {
+    @apply bg-white border border-gray-100 rounded-[2rem] p-8 transition-all duration-500 hover:shadow-premium-hover shadow-premium;
+  }
+
+  .btn-primary {
+    @apply relative overflow-hidden px-10 py-5 rounded-full font-bold uppercase tracking-widest text-sm transition-all duration-300 text-white active:scale-95;
+    background: linear-gradient(135deg, #EE2E31, #D51417);
+    box-shadow: 0 15px 30px -10px rgba(238, 46, 49, 0.4);
+  }
+
+  .btn-primary:hover {
+    @apply -translate-y-1 shadow-primary/30;
+    filter: brightness(1.05);
+  }
+
+  .btn-secondary {
+    @apply px-10 py-5 rounded-full font-bold uppercase tracking-widest text-sm transition-all duration-300 border-2 border-secondary text-secondary hover:bg-secondary hover:text-white;
+  }
+
+  .tamil-text {
+    font-family: 'Noto Sans Tamil', sans-serif;
+  }
+
+  .vibrant-text {
+    background: linear-gradient(135deg, #EE2E31, #FFD700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20;
+  }
+  
+  .section-padding {
+    @apply py-24 md:py-32;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #EE2E31;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D51417;
+}

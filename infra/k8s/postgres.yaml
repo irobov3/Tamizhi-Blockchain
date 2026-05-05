@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────
+# PostgreSQL — PersistentVolumeClaim
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: tamizhi
+  labels:
+    app: postgres
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard
+
+---
+# ─────────────────────────────────────────
+# PostgreSQL — ConfigMap
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: tamizhi
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: tamizhi
+  POSTGRES_USER: tamizhi
+  PGDATA: /var/lib/postgresql/data/pgdata
+
+---
+# ─────────────────────────────────────────
+# PostgreSQL — Secret
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: tamizhi
+  labels:
+    app: postgres
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: tamizhi_secret
+  DATABASE_URL: "postgresql://tamizhi:tamizhi_secret@postgres-service:5432/tamizhi"
+
+---
+# ─────────────────────────────────────────
+# PostgreSQL — Deployment
+# ─────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: tamizhi
+  labels:
+    app: postgres
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  strategy:
+    type: Recreate  # Required for persistent storage
+  template:
+    metadata:
+      labels:
+        app: postgres
+        app.kubernetes.io/name: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+            - secretRef:
+                name: postgres-secret
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U tamizhi -d tamizhi
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U tamizhi -d tamizhi
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+      terminationGracePeriodSeconds: 60
+
+---
+# ─────────────────────────────────────────
+# PostgreSQL — Service
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: tamizhi
+  labels:
+    app: postgres
+    app.kubernetes.io/name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+  type: ClusterIP

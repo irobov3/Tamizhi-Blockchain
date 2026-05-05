@@ -1,0 +1,85 @@
+syntax = "proto3";
+package tamizhi.messaging.v1;
+
+option go_package = "github.com/tamizhi/chain/x/messaging/types";
+
+import "gogoproto/gogo.proto";
+
+message SessionID {
+  string wallet_address  = 1 [(gogoproto.customname) = "WalletAddress"];
+  string session_pub_key = 2 [(gogoproto.customname) = "SessionPubKey"];
+  string display_name    = 3 [(gogoproto.customname) = "DisplayName"];
+  string avatar_ipfs     = 4 [(gogoproto.customname) = "AvatarIPFS"];
+  int64  created_at      = 5;
+  int64  last_seen       = 6;
+  bool   active          = 7;
+}
+
+message GroupConversation {
+  string          id            = 1;
+  string          name          = 2;
+  string          description   = 3;
+  string          admin_address = 4;
+  repeated string members       = 5;
+  bool            encrypted     = 6;
+  string          status        = 7;
+  int64           created_at    = 8;
+}
+
+message ServiceNodeRef {
+  string id       = 1;
+  string swarm_id = 2 [(gogoproto.customname) = "SwarmID"];
+  string endpoint = 3;
+  string status   = 4;
+}
+
+message QueryGetSessionIDRequest {
+  string wallet_address = 1 [(gogoproto.customname) = "WalletAddress"];
+}
+
+message QueryGetSessionIDResponse {
+  SessionID session_id = 1;
+}
+
+message QueryGetSessionIDByPubKeyRequest {
+  string pub_key = 1;
+}
+
+message QueryGetSessionIDByPubKeyResponse {
+  SessionID session_id = 1;
+}
+
+message QueryGetGroupRequest {
+  string group_id = 1 [(gogoproto.customname) = "GroupID"];
+}
+
+message QueryGetGroupResponse {
+  GroupConversation group = 1;
+}
+
+message QueryListGroupsByMemberRequest {
+  string session_pub_key = 1 [(gogoproto.customname) = "SessionPubKey"];
+}
+
+message QueryListGroupsByMemberResponse {
+  repeated GroupConversation groups = 1;
+}
+
+message QueryListActiveNodesRequest {}
+
+message QueryListActiveNodesResponse {
+  repeated ServiceNodeRef nodes = 1;
+}
+
+service Query {
+  // GET /tamizhi/messaging/v1/sessions/{wallet_address}
+  rpc GetSessionID(QueryGetSessionIDRequest) returns (QueryGetSessionIDResponse);
+  // GET /tamizhi/messaging/v1/sessions/pubkey/{pub_key}
+  rpc GetSessionIDByPubKey(QueryGetSessionIDByPubKeyRequest) returns (QueryGetSessionIDByPubKeyResponse);
+  // GET /tamizhi/messaging/v1/groups/{group_id}
+  rpc GetGroup(QueryGetGroupRequest) returns (QueryGetGroupResponse);
+  // GET /tamizhi/messaging/v1/groups/member/{session_pub_key}
+  rpc ListGroupsByMember(QueryListGroupsByMemberRequest) returns (QueryListGroupsByMemberResponse);
+  // GET /tamizhi/messaging/v1/nodes
+  rpc ListActiveNodes(QueryListActiveNodesRequest) returns (QueryListActiveNodesResponse);
+}

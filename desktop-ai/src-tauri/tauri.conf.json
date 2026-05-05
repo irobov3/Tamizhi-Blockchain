@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tamizhi AI",
+  "version": "0.1.0",
+  "identifier": "ai.tamizhi.desktop.ai",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1422",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{
+      "label": "main",
+      "title": "Tamizhi AI",
+      "width": 1200,
+      "height": 800,
+      "minWidth": 700,
+      "minHeight": 500,
+      "decorations": true,
+      "transparent": false
+    }]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "deb", "rpm", "msi", "nsis", "appimage"],
+    "category": "Productivity",
+    "shortDescription": "AI assistant with Tamil language fluency",
+    "longDescription": "Multilingual AI assistant powered by Claude. Built for the Tamizhi community."
+  }
+}

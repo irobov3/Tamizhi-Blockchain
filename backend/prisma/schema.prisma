@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  address      String        @unique
+  publicKey    String
+  nonce        String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  messages     Message[]     @relation("SenderMessages")
+
+  @@map("users")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  fromAddress String
+  toAddress   String
+  amount      String
+  denom       String   @default("utamizhi")
+  txHash      String   @unique
+  status      String   @default("pending")
+  blockHeight Int?
+  gasUsed     Int?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [fromAddress], references: [address])
+
+  @@map("transactions")
+}
+
+model LiteraryWork {
+  id                 String   @id @default(uuid())
+  workId             String   @unique @default(uuid())
+  title              String
+  titleTransliterated String?
+  authorName         String
+  authorAddress      String
+  ipfsCid            String?
+  arweaveTx          String?
+  sha256Hash         String?
+  period             String?
+  genre              String?
+  tags               String[]
+  license            String   @default("CC-BY-4.0")
+  txHash             String?
+  blockHeight        Int?
+  verified           Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  @@map("literary_works")
+}
+
+model Message {
+  id               String       @id @default(uuid())
+  senderId         String
+  recipientAddress String
+  encryptedContent String
+  nonce            String
+  timestamp        DateTime     @default(now())
+  read             Boolean      @default(false)
+  sender           User         @relation("SenderMessages", fields: [senderId], references: [id])
+  conversation     Conversation? @relation(fields: [conversationId], references: [id])
+  conversationId   String?
+
+  @@map("messages")
+}
+
+model Conversation {
+  id           String    @id @default(uuid())
+  participant1 String
+  participant2 String
+  lastMessage  String?
+  updatedAt    DateTime  @updatedAt
+  messages     Message[]
+
+  @@unique([participant1, participant2])
+  @@map("conversations")
+}

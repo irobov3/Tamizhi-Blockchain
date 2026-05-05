@@ -1,0 +1,65 @@
+syntax = "proto3";
+package tamizhi.security.v1;
+
+option go_package = "github.com/tamizhi/chain/x/security/types";
+
+import "gogoproto/gogo.proto";
+
+message MsgRaiseThreatFlag {
+  string authority   = 1;
+  string employee_id = 2 [(gogoproto.customname) = "EmployeeID"];
+  string address     = 3;
+  string threat_type = 4 [(gogoproto.customname) = "ThreatType"];
+  string level       = 5;
+  string description = 6;
+  string action      = 7;
+  string source      = 8;
+}
+
+message MsgRaiseThreatFlagResponse {
+  uint64 flag_id = 1 [(gogoproto.customname) = "FlagID"];
+}
+
+message MsgResolveThreatFlag {
+  string authority   = 1;
+  uint64 flag_id     = 2 [(gogoproto.customname) = "FlagID"];
+  string resolution  = 3;
+}
+
+message MsgResolveThreatFlagResponse {}
+
+message MsgLogSecurityEvent {
+  string authority   = 1;
+  string employee_id = 2 [(gogoproto.customname) = "EmployeeID"];
+  string address     = 3;
+  string event_type  = 4;
+  string data_hash   = 5 [(gogoproto.customname) = "DataHash"];
+  string device_id   = 6 [(gogoproto.customname) = "DeviceID"];
+}
+
+message MsgLogSecurityEventResponse {
+  uint64 event_id = 1 [(gogoproto.customname) = "EventID"];
+}
+
+message MsgBlockAddress {
+  string authority = 1;
+  string address   = 2;
+  string reason    = 3;
+}
+
+message MsgBlockAddressResponse {}
+
+message MsgUnblockAddress {
+  string authority = 1;
+  string address   = 2;
+}
+
+message MsgUnblockAddressResponse {}
+
+service Msg {
+  rpc RaiseThreatFlag(MsgRaiseThreatFlag) returns (MsgRaiseThreatFlagResponse);
+  rpc ResolveThreatFlag(MsgResolveThreatFlag) returns (MsgResolveThreatFlagResponse);
+  rpc LogSecurityEvent(MsgLogSecurityEvent) returns (MsgLogSecurityEventResponse);
+  rpc BlockAddress(MsgBlockAddress) returns (MsgBlockAddressResponse);
+  rpc UnblockAddress(MsgUnblockAddress) returns (MsgUnblockAddressResponse);
+}

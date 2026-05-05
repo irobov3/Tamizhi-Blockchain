@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tamizhi Messenger",
+  "version": "0.1.0",
+  "identifier": "ai.tamizhi.desktop.messenger",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tamizhi Messenger",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "decorations": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "deb", "rpm", "appimage", "msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "SocialNetworking",
+    "shortDescription": "Decentralized messenger on Tamizhi chain",
+    "longDescription": "End-to-end encrypted messaging powered by the Tamizhi blockchain.",
+    "publisher": "Tamizhi Foundation",
+    "copyright": "© 2026 Tamizhi Foundation"
+  }
+}

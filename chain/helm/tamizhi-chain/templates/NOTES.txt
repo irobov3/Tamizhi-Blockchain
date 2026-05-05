@@ -1,0 +1,14 @@
+Thank you for installing {{ .Chart.Name }} v{{ .Chart.Version }}!
+
+Tamizhi Chain Node is now deploying. Monitor the startup with:
+  kubectl logs -f deployment/{{ include "tamizhi-chain.fullname" . }}
+
+Access the RPC endpoint:
+  kubectl port-forward svc/{{ include "tamizhi-chain.fullname" . }} 26657:26657
+  curl http://localhost:26657/status
+
+Access the REST API:
+  kubectl port-forward svc/{{ include "tamizhi-chain.fullname" . }} 1317:1317
+  curl http://localhost:1317/cosmos/base/tendermint/v1beta1/node_info
+
+Chain ID: {{ .Values.node.chainID }}

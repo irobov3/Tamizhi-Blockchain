@@ -1,0 +1,83 @@
+syntax = "proto3";
+package tamizhi.security.v1;
+
+option go_package = "github.com/tamizhi/chain/x/security/types";
+
+import "gogoproto/gogo.proto";
+
+message ThreatFlag {
+  uint64 id          = 1;
+  string employee_id = 2 [(gogoproto.customname) = "EmployeeID"];
+  string address     = 3;
+  string threat_type = 4 [(gogoproto.customname) = "ThreatType"];
+  string level       = 5;
+  string description = 6;
+  string action      = 7;
+  string source      = 8;
+  bool   resolved    = 9;
+  string resolution  = 10;
+  int64  created_at  = 11;
+  int64  resolved_at = 12;
+  int64  block_height = 13;
+}
+
+message SecurityEvent {
+  uint64 id          = 1;
+  string employee_id = 2 [(gogoproto.customname) = "EmployeeID"];
+  string address     = 3;
+  string event_type  = 4;
+  string data_hash   = 5 [(gogoproto.customname) = "DataHash"];
+  string device_id   = 6 [(gogoproto.customname) = "DeviceID"];
+  int64  timestamp   = 7;
+  int64  block_height = 8;
+}
+
+message QueryGetThreatFlagRequest {
+  uint64 flag_id = 1 [(gogoproto.customname) = "FlagID"];
+}
+
+message QueryGetThreatFlagResponse {
+  ThreatFlag flag = 1;
+}
+
+message QueryListActiveThreatFlagsRequest {}
+
+message QueryListActiveThreatFlagsResponse {
+  repeated ThreatFlag flags = 1;
+}
+
+message QueryListThreatFlagsByEmployeeRequest {
+  string employee_id = 1 [(gogoproto.customname) = "EmployeeID"];
+}
+
+message QueryListThreatFlagsByEmployeeResponse {
+  repeated ThreatFlag flags = 1;
+}
+
+message QueryListSecurityEventsRequest {}
+
+message QueryListSecurityEventsResponse {
+  repeated SecurityEvent events = 1;
+}
+
+message QueryIsBlockedRequest {
+  string address = 1;
+}
+
+message QueryIsBlockedResponse {
+  bool blocked = 1;
+  string reason = 2;
+}
+
+service Query {
+  // GET /tamizhi/security/v1/threats
+  rpc ListActiveThreatFlags(QueryListActiveThreatFlagsRequest) returns (QueryListActiveThreatFlagsResponse);
+  // GET /tamizhi/security/v1/threats/{flag_id}
+  rpc GetThreatFlag(QueryGetThreatFlagRequest) returns (QueryGetThreatFlagResponse);
+  // GET /tamizhi/security/v1/threats/employee/{employee_id}
+  rpc ListThreatFlagsByEmployee(QueryListThreatFlagsByEmployeeRequest) returns (QueryListThreatFlagsByEmployeeResponse);
+  // GET /tamizhi/security/v1/events
+  rpc ListSecurityEvents(QueryListSecurityEventsRequest) returns (QueryListSecurityEventsResponse);
+  // GET /tamizhi/security/v1/blocked/{address}
+  rpc IsBlocked(QueryIsBlockedRequest) returns (QueryIsBlockedResponse);
+}

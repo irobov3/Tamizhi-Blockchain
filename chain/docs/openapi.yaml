@@ -1,0 +1,1238 @@
+openapi: "3.0.3"
+info:
+  title: Tamizhi Chain REST API
+  description: |
+    REST API for the Tamizhi blockchain — a Cosmos SDK Layer 1 chain for Tamil
+    cultural heritage, employee rewards, and secure messaging.
+
+    All endpoints are read-only (GET). Transactions must be submitted via gRPC
+    or CosmJS SDK. The base URL matches the node's REST port (default: 1317).
+  version: "v1.0.0"
+  contact:
+    name: Tamizhi Team
+    email: dev@tamizhi.ai
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:1317
+    description: Local development node
+  - url: https://rpc.tamizhi.ai
+    description: Tamizhi mainnet REST endpoint (future)
+
+tags:
+  - name: Rewards
+    description: Employee reward rules and records
+  - name: Nodes
+    description: Service node registry and swarm management
+  - name: Access Log
+    description: Tamper-proof file access audit trail
+  - name: Security
+    description: Threat flags and security events
+  - name: Messaging
+    description: Encrypted messaging sessions and groups
+
+paths:
+
+  # ---------------------------------------------------------------------------
+  # Rewards module
+  # ---------------------------------------------------------------------------
+
+  /tamizhi/rewards/v1/rules:
+    get:
+      tags:
+        - Rewards
+      summary: List all reward rules
+      operationId: ListRewardRules
+      x-cosmos-module: rewards
+      description: Returns the complete list of reward rules defined on-chain.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RewardRule"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/rewards/v1/rules/{rule_id}:
+    get:
+      tags:
+        - Rewards
+      summary: Get a reward rule by ID
+      operationId: GetRewardRule
+      x-cosmos-module: rewards
+      description: Returns a single reward rule identified by its unique rule ID.
+      parameters:
+        - $ref: "#/components/parameters/rule_id"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rule:
+                    $ref: "#/components/schemas/RewardRule"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/rewards/v1/records/{employee_id}:
+    get:
+      tags:
+        - Rewards
+      summary: Get reward records for an employee
+      operationId: GetRewardRecords
+      x-cosmos-module: rewards
+      description: Returns all reward records issued to the specified employee.
+      parameters:
+        - $ref: "#/components/parameters/employee_id"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RewardRecord"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ---------------------------------------------------------------------------
+  # Nodes module
+  # ---------------------------------------------------------------------------
+
+  /tamizhi/nodes/v1/nodes:
+    get:
+      tags:
+        - Nodes
+      summary: List all active service nodes
+      operationId: ListActiveNodes
+      x-cosmos-module: nodes
+      description: Returns all currently active service nodes registered on-chain.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ServiceNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/nodes/v1/nodes/{node_id}:
+    get:
+      tags:
+        - Nodes
+      summary: Get a service node by ID
+      operationId: GetNode
+      x-cosmos-module: nodes
+      description: Returns a single service node identified by its node ID.
+      parameters:
+        - $ref: "#/components/parameters/node_id"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  node:
+                    $ref: "#/components/schemas/ServiceNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/nodes/v1/swarms:
+    get:
+      tags:
+        - Nodes
+      summary: Get all swarms
+      operationId: GetSwarms
+      x-cosmos-module: nodes
+      description: Returns all swarms and their constituent node IDs.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  swarms:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Swarm"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/nodes/v1/swarms/{swarm_id}/nodes:
+    get:
+      tags:
+        - Nodes
+      summary: List nodes in a swarm
+      operationId: ListNodesBySwarm
+      x-cosmos-module: nodes
+      description: Returns all service nodes that belong to the specified swarm.
+      parameters:
+        - $ref: "#/components/parameters/swarm_id"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ServiceNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ---------------------------------------------------------------------------
+  # Access Log module
+  # ---------------------------------------------------------------------------
+
+  /tamizhi/accesslog/v1/logs:
+    get:
+      tags:
+        - Access Log
+      summary: List all access log entries
+      operationId: ListLogs
+      x-cosmos-module: accesslog
+      description: Returns the full tamper-proof audit trail of file access events.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AccessLogEntry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/accesslog/v1/logs/{id}:
+    get:
+      tags:
+        - Access Log
+      summary: Get an access log entry by ID
+      operationId: GetLog
+      x-cosmos-module: accesslog
+      description: Returns a single access log entry identified by its numeric ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique numeric identifier of the access log entry.
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entry:
+                    $ref: "#/components/schemas/AccessLogEntry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/accesslog/v1/logs/employee/{employee_id}:
+    get:
+      tags:
+        - Access Log
+      summary: Get access log entries by employee
+      operationId: GetLogsByEmployee
+      x-cosmos-module: accesslog
+      description: Returns all access log entries associated with the specified employee.
+      parameters:
+        - $ref: "#/components/parameters/employee_id"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AccessLogEntry"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ---------------------------------------------------------------------------
+  # Security module
+  # ---------------------------------------------------------------------------
+
+  /tamizhi/security/v1/threats:
+    get:
+      tags:
+        - Security
+      summary: List all active threat flags
+      operationId: ListActiveThreatFlags
+      x-cosmos-module: security
+      description: Returns all unresolved threat flags currently active on-chain.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flags:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ThreatFlag"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/security/v1/threats/{flag_id}:
+    get:
+      tags:
+        - Security
+      summary: Get a threat flag by ID
+      operationId: GetThreatFlag
+      x-cosmos-module: security
+      description: Returns a single threat flag identified by its flag ID.
+      parameters:
+        - name: flag_id
+          in: path
+          required: true
+          description: Unique numeric identifier of the threat flag.
+          schema:
+            type: integer
+            format: uint64
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flag:
+                    $ref: "#/components/schemas/ThreatFlag"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/security/v1/threats/employee/{employee_id}:
+    get:
+      tags:
+        - Security
+      summary: List threat flags by employee
+      operationId: ListThreatFlagsByEmployee
+      x-cosmos-module: security
+      description: Returns all threat flags associated with the specified employee.
+      parameters:
+        - $ref: "#/components/parameters/employee_id"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  flags:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ThreatFlag"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/security/v1/events:
+    get:
+      tags:
+        - Security
+      summary: List all security events
+      operationId: ListSecurityEvents
+      x-cosmos-module: security
+      description: Returns all security events recorded on-chain.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SecurityEvent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/security/v1/blocked/{address}:
+    get:
+      tags:
+        - Security
+      summary: Check if an address is blocked
+      operationId: IsBlocked
+      x-cosmos-module: security
+      description: >
+        Returns whether the given blockchain address is currently blocked, and
+        the reason for the block if applicable.
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Bech32-encoded blockchain address to query.
+          schema:
+            type: string
+            example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocked:
+                    type: boolean
+                    description: Whether the address is currently blocked.
+                  reason:
+                    type: string
+                    description: Human-readable reason for the block, if any.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ---------------------------------------------------------------------------
+  # Messaging module
+  # ---------------------------------------------------------------------------
+
+  /tamizhi/messaging/v1/sessions/{wallet_address}:
+    get:
+      tags:
+        - Messaging
+      summary: Get session by wallet address
+      operationId: GetSessionID
+      x-cosmos-module: messaging
+      description: Returns the messaging session associated with a given wallet address.
+      parameters:
+        - name: wallet_address
+          in: path
+          required: true
+          description: Bech32-encoded wallet address of the session owner.
+          schema:
+            type: string
+            example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    $ref: "#/components/schemas/SessionID"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/messaging/v1/sessions/pubkey/{pub_key}:
+    get:
+      tags:
+        - Messaging
+      summary: Get session by public key
+      operationId: GetSessionIDByPubKey
+      x-cosmos-module: messaging
+      description: Returns the messaging session associated with a given session public key.
+      parameters:
+        - name: pub_key
+          in: path
+          required: true
+          description: Hex- or base64-encoded session public key.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    $ref: "#/components/schemas/SessionID"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/messaging/v1/groups/{group_id}:
+    get:
+      tags:
+        - Messaging
+      summary: Get a group conversation by ID
+      operationId: GetGroup
+      x-cosmos-module: messaging
+      description: Returns metadata and membership of the specified group conversation.
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          description: Unique identifier of the group conversation.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  group:
+                    $ref: "#/components/schemas/GroupConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/messaging/v1/groups/member/{session_pub_key}:
+    get:
+      tags:
+        - Messaging
+      summary: List groups for a member
+      operationId: ListGroupsByMember
+      x-cosmos-module: messaging
+      description: Returns all group conversations that the given session public key is a member of.
+      parameters:
+        - name: session_pub_key
+          in: path
+          required: true
+          description: Session public key of the member.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GroupConversation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /tamizhi/messaging/v1/nodes:
+    get:
+      tags:
+        - Messaging
+      summary: List active messaging nodes
+      operationId: ListActiveMessagingNodes
+      x-cosmos-module: messaging
+      description: Returns lightweight references to all active messaging service nodes.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ServiceNodeRef"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+# =============================================================================
+# Components
+# =============================================================================
+
+components:
+
+  # ---------------------------------------------------------------------------
+  # Reusable parameters
+  # ---------------------------------------------------------------------------
+
+  parameters:
+    employee_id:
+      name: employee_id
+      in: path
+      required: true
+      description: Unique identifier of the employee.
+      schema:
+        type: string
+        example: EMP-0042
+
+    rule_id:
+      name: rule_id
+      in: path
+      required: true
+      description: Unique identifier of the reward rule.
+      schema:
+        type: string
+        example: rule-attendance-daily
+
+    node_id:
+      name: node_id
+      in: path
+      required: true
+      description: Unique identifier of the service node.
+      schema:
+        type: string
+        example: node-abc123
+
+    swarm_id:
+      name: swarm_id
+      in: path
+      required: true
+      description: Unique identifier of the swarm.
+      schema:
+        type: string
+        example: swarm-01
+
+  # ---------------------------------------------------------------------------
+  # Reusable responses
+  # ---------------------------------------------------------------------------
+
+  responses:
+    BadRequest:
+      description: Invalid argument — the path parameter or query value is malformed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: 3
+            message: "invalid argument: rule_id must not be empty"
+            details: []
+
+    NotFound:
+      description: The requested resource was not found on-chain.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: 5
+            message: "not found"
+            details: []
+
+    InternalServerError:
+      description: An unexpected error occurred inside the node.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: 13
+            message: "internal server error"
+            details: []
+
+  # ---------------------------------------------------------------------------
+  # Schemas
+  # ---------------------------------------------------------------------------
+
+  schemas:
+
+    # ------------------------------------------------------------------
+    # Primitive / shared
+    # ------------------------------------------------------------------
+
+    Coin:
+      type: object
+      description: A Cosmos SDK coin representing a token amount and denomination.
+      required:
+        - denom
+        - amount
+      properties:
+        denom:
+          type: string
+          description: Token denomination (e.g. "utmz").
+          example: utmz
+        amount:
+          type: string
+          description: Token amount as a decimal string (avoids integer overflow).
+          example: "1000000"
+
+    Error:
+      type: object
+      description: Standard gRPC-gateway error envelope.
+      properties:
+        code:
+          type: integer
+          description: gRPC status code mapped from HTTP status.
+          example: 5
+        message:
+          type: string
+          description: Human-readable error message.
+          example: "not found"
+        details:
+          type: array
+          description: Optional additional error details.
+          items:
+            type: object
+            additionalProperties: true
+
+    # ------------------------------------------------------------------
+    # Rewards module schemas
+    # ------------------------------------------------------------------
+
+    RewardRule:
+      type: object
+      description: An on-chain rule that defines how a particular activity is rewarded.
+      required:
+        - id
+        - activity
+        - amount
+        - active
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the reward rule.
+          example: rule-attendance-daily
+        activity:
+          type: string
+          description: Name of the activity this rule applies to.
+          example: daily_attendance
+        amount:
+          $ref: "#/components/schemas/Coin"
+        description:
+          type: string
+          description: Human-readable description of the rule.
+          example: Reward issued for each day of on-time attendance.
+        active:
+          type: boolean
+          description: Whether the rule is currently active and being applied.
+          example: true
+        max_per_day:
+          type: integer
+          description: Maximum number of times this rule can be triggered per day (0 = unlimited).
+          example: 1
+
+    RewardRecord:
+      type: object
+      description: A single reward issuance event recorded on-chain.
+      required:
+        - id
+        - employee_id
+        - address
+        - rule_id
+        - activity
+        - amount
+        - timestamp
+        - block_height
+      properties:
+        id:
+          type: integer
+          format: uint64
+          description: Auto-incremented record identifier.
+          example: 17
+        employee_id:
+          type: string
+          description: Identifier of the rewarded employee.
+          example: EMP-0042
+        address:
+          type: string
+          description: Bech32-encoded wallet address that received the reward.
+          example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+        rule_id:
+          type: string
+          description: ID of the reward rule that triggered this record.
+          example: rule-attendance-daily
+        activity:
+          type: string
+          description: Activity name at the time of reward issuance.
+          example: daily_attendance
+        amount:
+          $ref: "#/components/schemas/Coin"
+        memo:
+          type: string
+          description: Optional free-text memo attached to the reward.
+          example: "Week 18 punctuality bonus"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) when the reward was issued.
+          example: 1714900000
+        block_height:
+          type: integer
+          format: int64
+          description: Block height at which the reward transaction was committed.
+          example: 102450
+
+    # ------------------------------------------------------------------
+    # Nodes module schemas
+    # ------------------------------------------------------------------
+
+    ServiceNode:
+      type: object
+      description: A registered service node participating in the Tamizhi network.
+      required:
+        - id
+        - owner_address
+        - endpoint
+        - staked_amount
+        - status
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the service node.
+          example: node-abc123
+        owner_address:
+          type: string
+          description: Bech32-encoded address of the node operator.
+          example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+        endpoint:
+          type: string
+          description: Public HTTP/gRPC endpoint of the node.
+          example: https://node1.tamizhi.ai:9090
+        staked_amount:
+          $ref: "#/components/schemas/Coin"
+        status:
+          type: string
+          description: Operational status of the node.
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - JAILED
+          example: ACTIVE
+        swarm_id:
+          type: string
+          description: ID of the swarm this node belongs to, if any.
+          example: swarm-01
+        registered_at:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) when the node was registered.
+          example: 1710000000
+        last_reward_at:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) of the node's last reward event.
+          example: 1714899000
+        messages_stored:
+          type: integer
+          format: int64
+          description: Total number of messages currently stored by this node.
+          example: 84321
+        uptime_score:
+          type: integer
+          description: Rolling uptime score (0–100).
+          minimum: 0
+          maximum: 100
+          example: 97
+
+    Swarm:
+      type: object
+      description: A logical grouping of service nodes that coordinate storage and messaging.
+      required:
+        - id
+        - node_ids
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the swarm.
+          example: swarm-01
+        node_ids:
+          type: array
+          description: List of service node IDs that belong to this swarm.
+          items:
+            type: string
+          example:
+            - node-abc123
+            - node-def456
+
+    # ------------------------------------------------------------------
+    # Access Log module schemas
+    # ------------------------------------------------------------------
+
+    AccessLogEntry:
+      type: object
+      description: An immutable record of a file access event written to the chain.
+      required:
+        - id
+        - employee_id
+        - file_hash
+        - file_name
+        - action
+        - timestamp
+        - block_height
+        - tx_hash
+      properties:
+        id:
+          type: integer
+          format: uint64
+          description: Auto-incremented log entry identifier.
+          example: 3010
+        employee_id:
+          type: string
+          description: ID of the employee who performed the action.
+          example: EMP-0042
+        file_hash:
+          type: string
+          description: SHA-256 hash of the accessed file.
+          example: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        file_name:
+          type: string
+          description: Original filename of the accessed document.
+          example: payroll_q1_2025.pdf
+        action:
+          type: string
+          description: Type of file operation performed (e.g. READ, WRITE, DELETE, SHARE).
+          example: READ
+        ipfs_cid:
+          type: string
+          description: IPFS Content Identifier where the file is stored, if available.
+          example: bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) of the access event.
+          example: 1714900100
+        block_height:
+          type: integer
+          format: int64
+          description: Block height at which this log entry was committed.
+          example: 102460
+        tx_hash:
+          type: string
+          description: Transaction hash that contains this log entry.
+          example: A1B2C3D4E5F6...
+
+    # ------------------------------------------------------------------
+    # Security module schemas
+    # ------------------------------------------------------------------
+
+    ThreatFlag:
+      type: object
+      description: A recorded threat associated with an employee or address.
+      required:
+        - id
+        - employee_id
+        - address
+        - threat_type
+        - level
+        - resolved
+        - created_at
+        - block_height
+      properties:
+        id:
+          type: integer
+          format: uint64
+          description: Auto-incremented threat flag identifier.
+          example: 88
+        employee_id:
+          type: string
+          description: ID of the employee associated with this threat.
+          example: EMP-0042
+        address:
+          type: string
+          description: Bech32-encoded address associated with the threat.
+          example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+        threat_type:
+          type: string
+          description: Category of the detected threat.
+          example: UNAUTHORIZED_ACCESS
+        level:
+          type: string
+          description: Severity level of the threat.
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+            - CRITICAL
+          example: HIGH
+        description:
+          type: string
+          description: Detailed description of the threat.
+          example: Employee attempted to access restricted payroll files outside working hours.
+        action:
+          type: string
+          description: Automated action taken in response to the threat.
+          example: ACCOUNT_SUSPENDED
+        source:
+          type: string
+          description: Source system or module that raised the flag.
+          example: access_log_monitor
+        resolved:
+          type: boolean
+          description: Whether this threat flag has been resolved.
+          example: false
+        resolution:
+          type: string
+          description: Description of the resolution, if resolved.
+          example: ""
+        created_at:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) when the flag was created.
+          example: 1714850000
+        resolved_at:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) when the flag was resolved (0 if unresolved).
+          example: 0
+        block_height:
+          type: integer
+          format: int64
+          description: Block height at which the threat flag was committed.
+          example: 102300
+
+    SecurityEvent:
+      type: object
+      description: A raw security event captured from a device or network source.
+      required:
+        - id
+        - employee_id
+        - address
+        - event_type
+        - data_hash
+        - timestamp
+        - block_height
+      properties:
+        id:
+          type: integer
+          format: uint64
+          description: Auto-incremented security event identifier.
+          example: 512
+        employee_id:
+          type: string
+          description: ID of the employee associated with this event.
+          example: EMP-0042
+        address:
+          type: string
+          description: Bech32-encoded address associated with the event.
+          example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+        event_type:
+          type: string
+          description: Type of security event (e.g. LOGIN_FAILURE, VPN_ANOMALY, DATA_EXFIL).
+          example: LOGIN_FAILURE
+        data_hash:
+          type: string
+          description: Hash of the raw event payload for integrity verification.
+          example: d4e8a3b1...
+        device_id:
+          type: string
+          description: Identifier of the device that generated the event.
+          example: DEVICE-WS-007
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) of the security event.
+          example: 1714855000
+        block_height:
+          type: integer
+          format: int64
+          description: Block height at which this event was committed.
+          example: 102310
+
+    # ------------------------------------------------------------------
+    # Messaging module schemas
+    # ------------------------------------------------------------------
+
+    SessionID:
+      type: object
+      description: A messaging session identity record linking a wallet to a session key.
+      required:
+        - wallet_address
+        - session_pub_key
+        - active
+      properties:
+        wallet_address:
+          type: string
+          description: Bech32-encoded wallet address of the session owner.
+          example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+        session_pub_key:
+          type: string
+          description: Public key used for end-to-end encrypted messaging in this session.
+          example: 02a1b2c3d4e5f6...
+        display_name:
+          type: string
+          description: Human-readable display name chosen by the user.
+          example: Karthik R.
+        avatar_ipfs:
+          type: string
+          description: IPFS CID of the user's avatar image.
+          example: bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi
+        created_at:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) when the session was created.
+          example: 1710500000
+        last_seen:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) of the user's last activity.
+          example: 1714900000
+        active:
+          type: boolean
+          description: Whether this session is currently active.
+          example: true
+
+    GroupConversation:
+      type: object
+      description: Metadata and membership of an encrypted group conversation.
+      required:
+        - id
+        - name
+        - admin_address
+        - members
+        - encrypted
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the group conversation.
+          example: grp-xyz789
+        name:
+          type: string
+          description: Display name of the group.
+          example: Engineering Team
+        description:
+          type: string
+          description: Optional description of the group's purpose.
+          example: Internal channel for the Tamizhi core engineering team.
+        admin_address:
+          type: string
+          description: Session public key or wallet address of the group administrator.
+          example: tamizhi1qg5ega6dykkxzctefxpf6qz7qn2c4tnpkjf5k
+        members:
+          type: array
+          description: List of session public keys belonging to group members.
+          items:
+            type: string
+          example:
+            - 02a1b2c3d4e5f6...
+            - 03f6e5d4c3b2a1...
+        encrypted:
+          type: boolean
+          description: Whether messages in this group are end-to-end encrypted.
+          example: true
+        status:
+          type: string
+          description: Operational status of the group (e.g. ACTIVE, ARCHIVED, SUSPENDED).
+          example: ACTIVE
+        created_at:
+          type: integer
+          format: int64
+          description: Unix epoch timestamp (seconds) when the group was created.
+          example: 1712000000
+
+    ServiceNodeRef:
+      type: object
+      description: Lightweight reference to a service node, used in messaging node lists.
+      required:
+        - id
+        - endpoint
+        - status
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the service node.
+          example: node-abc123
+        swarm_id:
+          type: string
+          description: ID of the swarm this node belongs to, if any.
+          example: swarm-01
+        endpoint:
+          type: string
+          description: Public HTTP/gRPC endpoint of the node.
+          example: https://node1.tamizhi.ai:9090
+        status:
+          type: string
+          description: Operational status of the node (ACTIVE, INACTIVE, JAILED).
+          example: ACTIVE

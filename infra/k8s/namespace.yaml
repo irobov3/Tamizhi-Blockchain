@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tamizhi
+  labels:
+    name: tamizhi
+    app.kubernetes.io/name: tamizhi
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+    environment: production

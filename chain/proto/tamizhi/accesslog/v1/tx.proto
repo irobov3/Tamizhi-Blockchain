@@ -1,0 +1,23 @@
+syntax = "proto3";
+package tamizhi.accesslog.v1;
+
+option go_package = "github.com/tamizhi/chain/x/accesslog/types";
+
+import "gogoproto/gogo.proto";
+
+message MsgLogAccess {
+  string creator     = 1;
+  string employee_id = 2 [(gogoproto.customname) = "EmployeeID"];
+  string file_hash   = 3 [(gogoproto.customname) = "FileHash"];
+  string file_name   = 4 [(gogoproto.customname) = "FileName"];
+  string action      = 5;
+  string ipfs_cid    = 6 [(gogoproto.customname) = "IPFSCid"];
+}
+
+message MsgLogAccessResponse {
+  uint64 log_id = 1 [(gogoproto.customname) = "LogID"];
+}
+
+service Msg {
+  rpc LogAccess(MsgLogAccess) returns (MsgLogAccessResponse);
+}

@@ -1,0 +1,332 @@
+# ============================================================
+# Tamizhi Chain — config.toml (production configuration)
+# ============================================================
+# This is a production-ready CometBFT config.toml.
+# CometBFT v0.38 format.
+
+#######################################################################
+###                   Main Base Config Options                      ###
+#######################################################################
+
+# TCP or UNIX socket address of the ABCI application,
+# or the name of an ABCI application compiled in with the CometBFT binary.
+proxy_app = "tcp://127.0.0.1:26658"
+
+# A custom human-readable name for this node.
+moniker = "tamizhi-node"
+
+# Database backend: goleveldb | cleveldb | boltdb | rocksdb | badgerdb | pebbledb
+db_backend = "goleveldb"
+
+# Database directory.
+db_dir = "data"
+
+# Output level for logging: info, error, debug, none.
+log_level = "info"
+
+# Output format for logging: plain (colored text) or json.
+log_format = "plain"
+
+##### additional base config options #####
+
+# Path to the JSON file containing the initial validator set and other meta data.
+genesis_file = "config/genesis.json"
+
+# Path to the JSON file containing the private key to use as a validator in the consensus protocol.
+priv_validator_key_file = "config/priv_validator_key.json"
+
+# Path to the Tendermint internal state file that keeps track of BFT consensus state.
+priv_validator_state_file = "data/priv_validator_state.json"
+
+# TCP or UNIX socket address for CometBFT to listen on for
+# connections from an external PrivValidator process.
+priv_validator_laddr = ""
+
+# Path to the JSON file containing the private key to use for node authentication in the p2p protocol.
+node_key_file = "config/node_key.json"
+
+# Mechanism to connect to the ABCI application: socket | grpc.
+abci = "socket"
+
+# If true, query the ABCI app on connecting to a new peer so the app can decide
+# if we should keep the connection or not.
+filter_peers = false
+
+#######################################################################
+###                 Advanced Configuration Options                  ###
+#######################################################################
+
+#######################################################
+###       RPC Server Configuration Options          ###
+#######################################################
+
+[rpc]
+# TCP or UNIX socket address for the RPC server to listen on.
+laddr = "tcp://0.0.0.0:26657"
+
+# A list of origins a cross-domain request can be executed from.
+cors_allowed_origins = []
+
+# A list of methods the client is allowed to use with cross-domain requests.
+cors_allowed_methods = ["HEAD", "GET", "POST"]
+
+# A list of non simple headers the client is allowed to use with cross-domain requests.
+cors_allowed_headers = ["Origin", "Accept", "Content-Type", "X-Requested-With", "X-Server-Time"]
+
+# TCP or UNIX socket address for the gRPC server to listen on.
+# NOTE: This server only supports /broadcast_tx_commit.
+grpc_laddr = ""
+
+# Maximum number of simultaneous connections (including WebSocket).
+# If you want to accept a larger number than the default, make sure
+# you increase your OS limits.
+grpc_max_open_connections = 900
+
+# Set to true to disable the Websocket interface.
+unsafe = false
+
+# Maximum number of simultaneous connections (including WebSocket).
+max_open_connections = 900
+
+# Maximum number of unique clientIDs that can /subscribe.
+max_subscription_clients = 100
+
+# Maximum number of unique queries a given client can /subscribe to.
+max_subscriptions_per_client = 5
+
+# The timeout duration for broadcasting a transaction.
+timeout_broadcast_tx_commit = "10s"
+
+# Maximum size of request body, in bytes.
+max_body_bytes = 1000000
+
+# Maximum size of request header, in bytes.
+max_header_bytes = 1048576
+
+# The path to a file containing certificate that is used to create the HTTPS server.
+tls_cert_file = ""
+
+# The path to a file containing matching private key that is used to create the HTTPS server.
+tls_key_file = ""
+
+# pprof listen address (https://golang.org/pkg/net/http/pprof).
+pprof_laddr = "localhost:6060"
+
+#######################################################
+###           P2P Configuration Options             ###
+#######################################################
+
+[p2p]
+# Address to listen for incoming connections.
+laddr = "tcp://0.0.0.0:26656"
+
+# Address to advertise to peers for them to dial.
+# If empty, will use the same port as the laddr, and will introspect on the listener or use UPnP to figure out the address.
+external_address = ""
+
+# Comma separated list of seed nodes to connect to.
+seeds = ""
+
+# Comma separated list of nodes to keep persistent connections to.
+persistent_peers = ""
+
+# Path to address book.
+addr_book_file = "config/addrbook.json"
+
+# Set true for strict address routability rules.
+# Set false for private or local networks.
+addr_book_strict = true
+
+# Maximum number of inbound peers.
+max_num_inbound_peers = 40
+
+# Maximum number of outbound peers to connect to, excluding persistent peers.
+max_num_outbound_peers = 10
+
+# List of node IDs, to which a connection will be (re)established ignoring any existing limits.
+unconditional_peer_ids = ""
+
+# Maximum pause when redialing a persistent peer (if zero, exponential backoff is used).
+persistent_peers_max_dial_period = "0s"
+
+# Time to wait before flushing messages out on the connection.
+flush_throttle_timeout = "100ms"
+
+# Maximum size of a message packet payload, in bytes.
+max_packet_msg_payload_size = 1024
+
+# Rate at which packets can be sent, in bytes/second.
+send_rate = 5120000
+
+# Rate at which packets can be received, in bytes/second.
+recv_rate = 5120000
+
+# Set true to enable the peer-exchange reactor.
+pex = true
+
+# Seed mode, in which node constantly crawls the network and looks for peers.
+seed_mode = false
+
+# Comma separated list of peer IDs to keep private (don't gossip this node's information).
+private_peer_ids = ""
+
+# Toggle to disable guard against peers connecting from the same ip.
+allow_duplicate_ip = false
+
+# Peer connection configuration.
+handshake_timeout = "20s"
+dial_timeout = "3s"
+
+#######################################################
+###          Mempool Configuration Option           ###
+#######################################################
+
+[mempool]
+# The type of mempool for this node to use.
+# Options: "flood", "nop"
+type = "flood"
+
+# Recheck (upon blockchain.Height-mempool.Height+1) can be set to false for
+# temporary performance improvement.
+recheck = true
+
+# Set true to broadcast transactions in the mempool to other nodes.
+broadcast = true
+
+# WalDir is used to store WAL (write-ahead-log) files of mempool.
+wal_dir = ""
+
+# Maximum number of transactions in the mempool.
+size = 5000
+
+# Limit the total size of all txs in the mempool (measured in bytes).
+max_txs_bytes = 1073741824
+
+# Size of the cache (used to filter transactions we saw earlier) in transactions.
+cache_size = 10000
+
+# Do not remove invalid transactions from the cache (default: false).
+keep-invalid-txs-in-cache = false
+
+# Maximum size of a single transaction (in bytes).
+max_tx_bytes = 1048576
+
+# Maximum size of a batch of transactions to send to a peer (in bytes).
+max_batch_bytes = 0
+
+# ttl-duration, if non-zero, defines the maximum amount of time a transaction
+# can exist for in the mempool.
+ttl-duration = "0s"
+
+# ttl-num-blocks, if non-zero, defines the maximum height number for which a
+# transaction can exist for in the mempool.
+ttl-num-blocks = 0
+
+#######################################################
+###         State Sync Configuration Options        ###
+#######################################################
+
+[statesync]
+# State sync rapidly bootstraps a new node by discovering, fetching, and restoring
+# a state machine snapshot from peers instead of fetching and replaying historical
+# blocks.
+enable = false
+
+# RPC servers (comma-separated) for light client verification of the synced state machine
+# and target height.
+rpc_servers = ""
+
+# The height of a trusted block.
+trust_height = 0
+
+# The hash of a trusted block.
+trust_hash = ""
+
+# The light client's trust level.
+trust_period = "168h0m0s"
+
+# Time to spend discovering snapshots before initiating a restore.
+discovery_time = "15s"
+
+# Temporary directory for state sync snapshot chunks.
+temp_dir = ""
+
+# The timeout duration before re-requesting a chunk, may need to be increased for high latency networks.
+chunk_request_timeout = "10s"
+
+# The number of concurrent chunk fetchers to run.
+chunk_fetchers = "4"
+
+#######################################################
+###       Block Sync Configuration Options          ###
+#######################################################
+
+[blocksync]
+# Block Sync version to use:
+# - v0 (default): the legacy block sync implementation
+version = "v0"
+
+#######################################################
+###         Consensus Configuration Options         ###
+#######################################################
+
+[consensus]
+wal_file = "data/cs.wal/wal"
+
+# How long we wait for a proposal block before prevoting nil.
+timeout_propose = "3s"
+# How much timeout_propose increases with each round.
+timeout_propose_delta = "500ms"
+# How long we wait after receiving +2/3 prevotes for "anything" (i.e. not a single block or nil).
+timeout_prevote = "1s"
+# How much the timeout_prevote increases with each round.
+timeout_prevote_delta = "500ms"
+# How long we wait after receiving +2/3 precommits for "anything" (i.e. not a single block or nil).
+timeout_precommit = "1s"
+# How much the timeout_precommit increases with each round.
+timeout_precommit_delta = "500ms"
+# How long we wait after committing a block, before starting on the new height.
+timeout_commit = "3s"
+
+# How many blocks to look back to check existence of the node's consensus votes before panic'ing.
+double_sign_check_height = 0
+
+# Make progress as soon as we have all the precommits (as if TimeoutCommit = 0).
+skip_timeout_commit = false
+
+# EmptyBlocks mode and possible interval between empty blocks.
+create_empty_blocks = true
+create_empty_blocks_interval = "0s"
+
+# Reactor sleep duration parameters.
+peer_gossip_sleep_duration = "100ms"
+peer_query_maj23_sleep_duration = "2s"
+
+#######################################################
+###   Transaction Indexer Configuration Options     ###
+#######################################################
+
+[tx_index]
+# What indexer to use for transactions.
+# Options: "null", "kv", "psql"
+indexer = "kv"
+
+# The PostgreSQL connection configuration, the anchor for the psql indexer.
+psql-conn = ""
+
+#######################################################
+###       Instrumentation Configuration Options     ###
+#######################################################
+
+[instrumentation]
+# When true, Prometheus metrics are served under /metrics on PrometheusListenAddr.
+prometheus = false
+
+# Address to listen for Prometheus collector(s) connections.
+prometheus_listen_addr = ":26660"
+
+# Maximum number of simultaneous connections.
+max_open_connections = 3
+
+# Instrumentation namespace.
+namespace = "cometbft"

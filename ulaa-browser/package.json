@@ -1,0 +1,51 @@
+{
+  "name": "ulaa-browser",
+  "version": "1.0.0",
+  "description": "Ulaa — Tamil AI-powered web browser (உலா உலாவி)",
+  "main": "./out/main/index.js",
+  "author": "Ulaa Browser Team",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "npm run build && electron-builder",
+    "package:mac": "npm run build && electron-builder --mac",
+    "package:win": "npm run build && electron-builder --win",
+    "package:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.4"
+  },
+  "build": {
+    "appId": "io.ulaa.browser",
+    "productName": "Ulaa Browser",
+    "copyright": "Copyright © 2024 Ulaa Browser",
+    "directories": { "output": "dist-ulaa" },
+    "files": ["out/**/*"],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }]
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "category": "Network"
+    }
+  }
+}

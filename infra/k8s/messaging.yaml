@@ -1,0 +1,138 @@
+# ============================================================
+# Tamizhi Messaging Service (Socket.io) — Kubernetes Manifests
+# Includes: ConfigMap, Deployment, Service
+# Sticky sessions are required for Socket.io — enabled via
+# nginx.ingress.kubernetes.io/affinity annotation on the Ingress.
+# ============================================================
+
+# ─────────────────────────────────────────
+# Messaging Service — ConfigMap
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: messaging-config
+  namespace: tamizhi
+  labels:
+    app.kubernetes.io/name: messaging
+    app.kubernetes.io/part-of: tamizhi
+data:
+  PORT: "4000"
+  NODE_ENV: "production"
+  REDIS_URL: "redis://redis-service:6379"
+
+---
+# ─────────────────────────────────────────
+# Messaging Service — Deployment
+# ─────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging
+  namespace: tamizhi
+  labels:
+    app: messaging
+    app.kubernetes.io/name: messaging
+    app.kubernetes.io/part-of: tamizhi
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: messaging
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: messaging
+        app.kubernetes.io/name: messaging
+        app.kubernetes.io/part-of: tamizhi
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - messaging
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: messaging
+          image: tamizhi/messaging:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: ws
+              containerPort: 4000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: messaging-config
+          env:
+            # JWT_SECRET from shared secret
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: tamizhi-secrets
+                  key: JWT_SECRET
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+      terminationGracePeriodSeconds: 30
+
+---
+# ─────────────────────────────────────────
+# Messaging Service — ClusterIP Service
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: messaging-service
+  namespace: tamizhi
+  labels:
+    app: messaging
+    app.kubernetes.io/name: messaging
+    app.kubernetes.io/part-of: tamizhi
+spec:
+  type: ClusterIP
+  selector:
+    app: messaging
+  ports:
+    - name: ws
+      port: 4000
+      targetPort: 4000
+      protocol: TCP

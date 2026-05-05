@@ -1,0 +1,397 @@
+# ============================================================
+# Tamizhi Ecosystem — Local Development Compose
+# ============================================================
+# Prerequisites: copy .env.example to .env and fill in values
+#   cp .env.example .env
+#
+# Quick start:
+#   docker compose up
+#
+# Initialize a fresh chain node (first run only):
+#   docker compose up tamizhi-node
+#   ./infra/scripts/chain-init.sh
+# ============================================================
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+
+  # ─────────────────────────────────────────
+  # PostgreSQL 16
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: tamizhi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-tamizhi}"
+      POSTGRES_USER: "${POSTGRES_USER:-tamizhi}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-tamizhi_dev}"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tamizhi} -d ${POSTGRES_DB:-tamizhi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # Redis 7
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: tamizhi-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # IPFS node (Kubo)
+  # ─────────────────────────────────────────
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: tamizhi-ipfs
+    restart: unless-stopped
+    environment:
+      IPFS_PROFILE: server
+    ports:
+      - "4001:4001"   # Swarm (P2P)
+      - "5001:5001"   # API
+      - "8080:8080"   # Gateway
+    volumes:
+      - ipfs-data:/data/ipfs
+    healthcheck:
+      test: ["CMD-SHELL", "ipfs id >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # Tamizhi Chain Node (Cosmos SDK / CometBFT)
+  # Ports: 26656 P2P | 26657 RPC | 1317 REST | 9090 gRPC
+  # ─────────────────────────────────────────
+  tamizhi-node:
+    build:
+      context: ./chain
+      dockerfile: Dockerfile
+    image: tamizhi/node:latest
+    container_name: tamizhi-node
+    restart: unless-stopped
+    environment:
+      CHAIN_ID: "${CHAIN_ID:-tamizhi-1}"
+      MONIKER: "${MONIKER:-tamizhi-dev}"
+    ports:
+      - "26656:26656"   # P2P
+      - "26657:26657"   # RPC (CometBFT)
+      - "1317:1317"     # REST (Cosmos LCD)
+      - "9090:9090"     # gRPC
+    volumes:
+      - tamizhi-data:/home/tamizhi/.tamizhi
+    command:
+      - "start"
+      - "--home"
+      - "/home/tamizhi/.tamizhi"
+      - "--rpc.laddr"
+      - "tcp://0.0.0.0:26657"
+      - "--api.enable"
+      - "--api.address"
+      - "tcp://0.0.0.0:1317"
+      - "--grpc.address"
+      - "0.0.0.0:9090"
+      - "--minimum-gas-prices"
+      - "0.001utmz"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:26657/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # WS Relay — Tendermint → browser bridge (port 3002)
+  # ─────────────────────────────────────────
+  ws-relay:
+    build:
+      context: ./services/ws-relay
+    image: tamizhi/ws-relay:latest
+    container_name: tamizhi-ws-relay
+    restart: unless-stopped
+    environment:
+      CHAIN_WS_URL: ws://tamizhi-node:26657/websocket
+      PORT: "3002"
+    ports:
+      - "3002:3002"
+    depends_on:
+      tamizhi-node:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"const net=require('net');const c=net.connect(3002,'localhost',()=>{c.destroy();process.exit(0)});c.on('error',()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # Backend — NestJS REST API (port 3001)
+  # ─────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: tamizhi/backend:latest
+    container_name: tamizhi-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: "3001"
+      DATABASE_URL: "${DATABASE_URL:-postgresql://tamizhi:tamizhi_dev@postgres:5432/tamizhi}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production}"
+      CHAIN_RPC: "${CHAIN_RPC:-http://tamizhi-node:26657}"
+      CHAIN_REST: "${CHAIN_REST:-http://tamizhi-node:1317}"
+      CHAIN_GRPC: "${CHAIN_GRPC:-tamizhi-node:9090}"
+      CHAIN_ID: "${CHAIN_ID:-tamizhi-1}"
+      IPFS_API_URL: "${IPFS_NODE_URL:-http://ipfs:5001}"
+      IPFS_GATEWAY: "http://ipfs:8080/ipfs"
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # AI — FastAPI service (port 8000)
+  # ─────────────────────────────────────────
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    image: tamizhi/ai:latest
+    container_name: tamizhi-ai
+    restart: unless-stopped
+    environment:
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      CHAIN_REST: "${CHAIN_REST:-http://tamizhi-node:1317}"
+      CHAIN_ID: "${CHAIN_ID:-tamizhi-1}"
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # Messaging — Socket.io service (port 4000)
+  # ─────────────────────────────────────────
+  messaging:
+    build:
+      context: ./messaging
+      dockerfile: Dockerfile
+    image: tamizhi/messaging:latest
+    container_name: tamizhi-messaging
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: "4000"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production}"
+    ports:
+      - "4000:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # Storage — IPFS wrapper service (port 5000)
+  # ─────────────────────────────────────────
+  storage:
+    build:
+      context: ./storage
+      dockerfile: Dockerfile
+    image: tamizhi/storage:latest
+    container_name: tamizhi-storage
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: "5000"
+      IPFS_NODE_URL: "${IPFS_NODE_URL:-http://ipfs:5001}"
+      IPFS_GATEWAY: "http://ipfs:8080/ipfs"
+      MAX_FILE_SIZE_MB: "50"
+    ports:
+      - "5000:5000"
+    depends_on:
+      ipfs:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # Web — Next.js frontend (port 3000)
+  # ─────────────────────────────────────────
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    image: tamizhi/web:latest
+    container_name: tamizhi-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost/api}"
+      NEXT_PUBLIC_REST_URL: "${NEXT_PUBLIC_REST_URL:-http://localhost:1317}"
+      NEXT_PUBLIC_WS_URL: "${NEXT_PUBLIC_WS_URL:-ws://localhost:26657}"
+      NEXT_PUBLIC_CHAIN_RPC: "${NEXT_PUBLIC_CHAIN_RPC:-http://localhost:26657}"
+      NEXT_PUBLIC_CHAIN_ID: "${NEXT_PUBLIC_CHAIN_ID:-tamizhi-1}"
+      NEXT_PUBLIC_NFT_CONTRACT: "${NEXT_PUBLIC_NFT_CONTRACT:-}"
+      NEXT_PUBLIC_MESSAGING_URL: "${NEXT_PUBLIC_MESSAGING_URL:-ws://localhost:4000}"
+      NEXT_PUBLIC_STORAGE_URL: "${NEXT_PUBLIC_STORAGE_URL:-http://localhost:5000}"
+      NEXT_PUBLIC_IPFS_GATEWAY: "http://localhost:8080/ipfs"
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+      messaging:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+  # ─────────────────────────────────────────
+  # Nginx — Reverse proxy / traffic router (port 80)
+  # ─────────────────────────────────────────
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: tamizhi-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+      messaging:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t && curl -sf http://localhost/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - tamizhi-net
+    logging: *default-logging
+
+# ─────────────────────────────────────────
+# Named Volumes
+# ─────────────────────────────────────────
+volumes:
+  tamizhi-data:
+    name: tamizhi-chain-data
+    driver: local
+  postgres-data:
+    name: tamizhi-postgres-data
+    driver: local
+  redis-data:
+    name: tamizhi-redis-data
+    driver: local
+  ipfs-data:
+    name: tamizhi-ipfs-data
+    driver: local
+
+# ─────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────
+networks:
+  tamizhi-net:
+    name: tamizhi-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

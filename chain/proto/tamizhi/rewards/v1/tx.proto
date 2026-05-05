@@ -1,0 +1,68 @@
+syntax = "proto3";
+package tamizhi.rewards.v1;
+
+option go_package = "github.com/tamizhi/chain/x/rewards/types";
+
+import "gogoproto/gogo.proto";
+
+// Coin is a simple denomination+amount pair (mirrors sdk.Coin for proto transport).
+message Coin {
+  string denom  = 1;
+  string amount = 2;
+}
+
+// RewardRule defines parameters for an on-chain reward.
+message RewardRule {
+  string id          = 1 [(gogoproto.customname) = "ID"];
+  string activity    = 2;
+  Coin   amount      = 3 [(gogoproto.nullable) = false];
+  string description = 4;
+  bool   active      = 5;
+  uint64 max_per_day = 6 [(gogoproto.customname) = "MaxPerDay"];
+}
+
+message MsgIssueReward {
+  string authority   = 1;
+  string employee_id = 2 [(gogoproto.customname) = "EmployeeID"];
+  string rule_id     = 3 [(gogoproto.customname) = "RuleID"];
+  string memo        = 4;
+}
+
+message MsgIssueRewardResponse {
+  uint64 record_id = 1 [(gogoproto.customname) = "RecordID"];
+}
+
+message MsgCreateRewardRule {
+  string     authority = 1;
+  RewardRule rule      = 2 [(gogoproto.nullable) = false];
+}
+
+message MsgCreateRewardRuleResponse {}
+
+message MsgUpdateRewardRule {
+  string     authority = 1;
+  RewardRule rule      = 2 [(gogoproto.nullable) = false];
+}
+
+message MsgUpdateRewardRuleResponse {}
+
+// Params contains module parameters governable via x/gov.
+message Params {
+  uint64 max_daily_reward_per_employee = 1 [(gogoproto.customname) = "MaxDailyRewardPerEmployee"];
+  uint64 min_reward_amount             = 2 [(gogoproto.customname) = "MinRewardAmount"];
+  string reward_denom                  = 3 [(gogoproto.customname) = "RewardDenom"];
+}
+
+message MsgUpdateParams {
+  string authority = 1;
+  Params params    = 2 [(gogoproto.nullable) = false];
+}
+
+message MsgUpdateParamsResponse {}
+
+service Msg {
+  rpc IssueReward(MsgIssueReward)           returns (MsgIssueRewardResponse);
+  rpc CreateRewardRule(MsgCreateRewardRule) returns (MsgCreateRewardRuleResponse);
+  rpc UpdateRewardRule(MsgUpdateRewardRule) returns (MsgUpdateRewardRuleResponse);
+  rpc UpdateParams(MsgUpdateParams)         returns (MsgUpdateParamsResponse);
+}

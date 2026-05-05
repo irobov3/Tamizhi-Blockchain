@@ -1,0 +1,49 @@
+syntax = "proto3";
+package tamizhi.accesslog.v1;
+
+option go_package = "github.com/tamizhi/chain/x/accesslog/types";
+
+import "gogoproto/gogo.proto";
+
+message AccessLogEntry {
+  uint64 id           = 1;
+  string employee_id  = 2 [(gogoproto.customname) = "EmployeeID"];
+  string file_hash    = 3 [(gogoproto.customname) = "FileHash"];
+  string file_name    = 4 [(gogoproto.customname) = "FileName"];
+  string action       = 5;
+  string ipfs_cid     = 6 [(gogoproto.customname) = "IPFSCid"];
+  int64  timestamp    = 7;
+  int64  block_height = 8;
+  string tx_hash      = 9;
+}
+
+message QueryGetLogRequest {
+  uint64 id = 1;
+}
+
+message QueryGetLogResponse {
+  AccessLogEntry entry = 1;
+}
+
+message QueryGetLogsByEmployeeRequest {
+  string employee_id = 1 [(gogoproto.customname) = "EmployeeID"];
+}
+
+message QueryGetLogsByEmployeeResponse {
+  repeated AccessLogEntry entries = 1;
+}
+
+message QueryListLogsRequest {}
+
+message QueryListLogsResponse {
+  repeated AccessLogEntry entries = 1;
+}
+
+service Query {
+  // GET /tamizhi/accesslog/v1/logs
+  rpc ListLogs(QueryListLogsRequest) returns (QueryListLogsResponse);
+  // GET /tamizhi/accesslog/v1/logs/{id}
+  rpc GetLog(QueryGetLogRequest) returns (QueryGetLogResponse);
+  // GET /tamizhi/accesslog/v1/logs/employee/{employee_id}
+  rpc GetLogsByEmployee(QueryGetLogsByEmployeeRequest) returns (QueryGetLogsByEmployeeResponse);
+}

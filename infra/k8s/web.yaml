@@ -1,0 +1,219 @@
+# ─────────────────────────────────────────
+# Web App (Next.js) — ConfigMap
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  namespace: tamizhi
+  labels:
+    app: web
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+data:
+  NODE_ENV: "production"
+  PORT: "3000"
+  # These are public env vars — safe in ConfigMap
+  NEXT_PUBLIC_API_URL: "https://tamizhi.ai/api"
+  NEXT_PUBLIC_CHAIN_RPC: "https://tamizhi.ai/rpc"
+  NEXT_PUBLIC_CHAIN_LCD: "https://tamizhi.ai/lcd"
+  NEXT_PUBLIC_CHAIN_ID: "tamizhi-1"
+  NEXT_PUBLIC_WS_URL: "wss://tamizhi.ai/ws"
+  NEXT_PUBLIC_IPFS_GATEWAY: "https://tamizhi.ai/ipfs"
+
+---
+# ─────────────────────────────────────────
+# Web App — Deployment
+# ─────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: tamizhi
+  labels:
+    app: web
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: web
+        app.kubernetes.io/name: web
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - web
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: web
+          image: tamizhi/web:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: web-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 20  # Next.js can take time to compile
+      terminationGracePeriodSeconds: 30
+
+---
+# ─────────────────────────────────────────
+# Web App — Service
+# ─────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  namespace: tamizhi
+  labels:
+    app: web
+    app.kubernetes.io/name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  type: ClusterIP
+
+---
+# ─────────────────────────────────────────
+# Web App — Ingress
+# Requires: nginx ingress controller installed
+# ─────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tamizhi-ingress
+  namespace: tamizhi
+  labels:
+    app: web
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: tamizhi-ecosystem
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "55m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    # Enable gzip compression
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type, Authorization"
+    # TLS (cert-manager)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # WebSocket support
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  # tls:
+  #   - hosts:
+  #       - tamizhi.ai
+  #     secretName: tamizhi-tls
+  rules:
+    - host: tamizhi.ai
+      http:
+        paths:
+          # API → backend
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 3000
+          # WebSocket → messaging
+          - path: /ws(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: messaging-service
+                port:
+                  number: 4000
+          # AI service
+          - path: /ai(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ai-service
+                port:
+                  number: 8000
+          # IPFS content retrieval
+          - path: /ipfs(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: storage-service
+                port:
+                  number: 5000
+          # Storage API
+          - path: /storage(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: storage-service
+                port:
+                  number: 5000
+          # Web app — catch-all
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-service
+                port:
+                  number: 3000

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Bundle Identity -->
+    <key>CFBundleIdentifier</key>
+    <string>com.tamizhi.app</string>
+    <key>CFBundleName</key>
+    <string>Tamizhi</string>
+    <key>CFBundleDisplayName</key>
+    <string>தமிழி</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>ta</string>
+    </array>
+
+    <!-- Minimum OS -->
+    <key>MinimumOSVersion</key>
+    <string>16.0</string>
+
+    <!-- Launch -->
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+
+    <!-- Status Bar -->
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleLightContent</string>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+
+    <!-- Supported Interface Orientations (iPhone) -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    </array>
+
+    <!-- Supported Interface Orientations (iPad) -->
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <!-- Main scene manifest -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>Default Configuration</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
+
+    <!-- Privacy Usage Descriptions -->
+    <key>NSCameraUsageDescription</key>
+    <string>Tamizhi uses your camera to scan QR codes for wallet addresses and to capture documents for literature uploads.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Tamizhi uses Face ID to securely authenticate you and protect access to your wallet and private messages.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Tamizhi needs access to your photo library to attach images to messages and upload literature content.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Tamizhi would like to save QR codes and wallet backups to your photo library.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Tamizhi uses the microphone for voice-to-text Tamil input in the AI assistant.</string>
+
+    <!-- App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+            </dict>
+        </dict>
+    </dict>
+
+    <!-- Custom Tamizhi Keys -->
+    <key>TamizhiAPIURL</key>
+    <string>https://api.tamizhi.ai</string>
+    <key>TamizhiChainRPC</key>
+    <string>https://rpc.tamizhi.ai</string>
+    <key>TamizhiChainLCD</key>
+    <string>https://lcd.tamizhi.ai</string>
+    <key>TamizhiChainID</key>
+    <string>tamizhi-1</string>
+    <key>TamizhiIPFSGateway</key>
+    <string>https://ipfs.tamizhi.ai</string>
+    <key>TamizhiWSURL</key>
+    <string>wss://api.tamizhi.ai</string>
+
+    <!-- Fonts -->
+    <key>UIAppFonts</key>
+    <array>
+        <string>Latha.ttf</string>
+        <string>NotoSansTamil-Regular.ttf</string>
+        <string>NotoSansTamil-Bold.ttf</string>
+    </array>
+
+    <!-- Background Modes (for WebSocket polling) -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>remote-notification</string>
+    </array>
+
+    <!-- Push Notifications -->
+    <key>UIUserNotificationSettings</key>
+    <dict>
+        <key>UIUserNotificationTypes</key>
+        <integer>7</integer>
+    </dict>
+</dict>
+</plist>

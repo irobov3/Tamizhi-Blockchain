@@ -1,0 +1,193 @@
+# ─────────────────────────────────────────
+# Node.js
+# ─────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# ─────────────────────────────────────────
+# Environment files — never commit secrets
+# ─────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Keep examples
+!.env.example
+!.env.example.*
+
+# ─────────────────────────────────────────
+# Build outputs
+# ─────────────────────────────────────────
+dist/
+dist-ulaa/
+build/
+out/
+.next/
+.nuxt/
+.gradle/
+target/
+
+# Compiled binaries / installers / app bundles
+*.apk
+*.ipa
+*.dmg
+*.exe
+*.msi
+*.deb
+*.rpm
+*.AppImage
+*.app/
+chain/tamizhi
+chain/tamizhid
+chain/build/
+
+# Cache files
+*.pack
+executionHistory.bin
+buildOutputCleanup.bin
+
+# OS / IDE
+.DS_Store
+*.iml
+.idea/
+.vscode/
+
+# Cargo target dirs
+**/src-tauri/target/
+.vite/
+
+# ─────────────────────────────────────────
+# TypeScript
+# ─────────────────────────────────────────
+*.tsbuildinfo
+*.d.ts.map
+
+# ─────────────────────────────────────────
+# Rust / Cosmos SDK chain
+# ─────────────────────────────────────────
+target/
+chain/target/
+**/*.rs.bk
+Cargo.lock
+
+# ─────────────────────────────────────────
+# Python / AI service
+# ─────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+ENV/
+*.egg
+*.egg-info/
+dist/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# ─────────────────────────────────────────
+# Testing & Coverage
+# ─────────────────────────────────────────
+coverage/
+.nyc_output/
+lcov.info
+test-results/
+playwright-report/
+jest-results/
+
+# ─────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────
+logs/
+*.log
+lerna-debug.log*
+
+# ─────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────
+.dockerignore
+
+# ─────────────────────────────────────────
+# Chain data (local dev node state)
+# ─────────────────────────────────────────
+chain_data/
+.tamizhi/
+gentxs/
+*.key
+validator_key.json
+
+# ─────────────────────────────────────────
+# IDE / Editor
+# ─────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# ─────────────────────────────────────────
+# OS
+# ─────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V8
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────
+# Certificates & secrets
+# ─────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+infra/nginx/ssl/
+
+# ─────────────────────────────────────────
+# Mobile (React Native / Expo)
+# ─────────────────────────────────────────
+mobile/.expo/
+mobile/android/
+mobile/ios/
+*.orig.*
+web-build/
+
+# ─────────────────────────────────────────
+# Turborepo
+# ─────────────────────────────────────────
+.turbo/
+
+# ─────────────────────────────────────────
+# Miscellaneous
+# ─────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+tmp/
+temp/

@@ -1,0 +1,139 @@
+groups:
+  - name: tamizhi_chain
+    interval: 30s
+    rules:
+      # ── Block production ───────────────────────────────────────────────
+      - alert: BlockProductionSlow
+        expr: increase(tendermint_consensus_height[2m]) < 1
+        for: 2m
+        labels:
+          severity: critical
+          team: chain
+        annotations:
+          summary: "Block production has stalled"
+          description: "No new blocks in the last 2 minutes. Last height: {{ $value }}"
+          runbook: "https://docs.tamizhi.ai/runbook#block-production-stalled"
+
+      - alert: BlockTimeTooHigh
+        expr: tendermint_consensus_block_interval_seconds > 8
+        for: 5m
+        labels:
+          severity: warning
+          team: chain
+        annotations:
+          summary: "Block time exceeds 8s (target: 5s)"
+          description: "Block interval is {{ $value }}s on {{ $labels.instance }}"
+
+      # ── Validator / peers ──────────────────────────────────────────────
+      - alert: ValidatorMissedBlocks
+        expr: increase(tendermint_consensus_validator_missed_blocks[10m]) > 50
+        for: 1m
+        labels:
+          severity: warning
+          team: chain
+        annotations:
+          summary: "Validator missing blocks"
+          description: "{{ $labels.instance }} missed {{ $value }} blocks in the last 10 minutes"
+
+      - alert: PeerCountLow
+        expr: tendermint_p2p_peers < 2
+        for: 5m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "Node has fewer than 2 peers"
+          description: "{{ $labels.instance }} has only {{ $value }} peers"
+
+      # ── Mempool ───────────────────────────────────────────────────────
+      - alert: MempoolHigh
+        expr: tendermint_mempool_size > 500
+        for: 5m
+        labels:
+          severity: warning
+          team: chain
+        annotations:
+          summary: "Mempool has over 500 pending transactions"
+          description: "Mempool size is {{ $value }} on {{ $labels.instance }}"
+
+      - alert: MempoolFull
+        expr: tendermint_mempool_size > 5000
+        for: 1m
+        labels:
+          severity: critical
+          team: chain
+        annotations:
+          summary: "Mempool is critically full (>5000 txs)"
+          description: "Possible spam attack or tx processing bottleneck"
+
+      # ── Tamizhi custom metrics ────────────────────────────────────────
+      - alert: NodesBeingJailed
+        expr: increase(tamizhi_nodes_jailed_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          team: chain
+        annotations:
+          summary: "Service nodes are being jailed"
+          description: "{{ $value }} node(s) jailed in the last hour"
+
+      - alert: HighThreatFlags
+        expr: tamizhi_security_threat_flags_raised_total > 10
+        for: 5m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "High number of active threat flags (>10)"
+          description: "Security module has {{ $value }} active threat flags"
+
+      - alert: BlockedTxSpike
+        expr: rate(tamizhi_ante_blocked_tx_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High rate of blocked transactions"
+          description: "{{ $value }} blocked txs/sec — possible attack or misconfigured blocklist"
+
+      # ── System resources ──────────────────────────────────────────────
+      - alert: DiskSpaceHigh
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.20
+        for: 10m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "Disk usage above 80%"
+          description: "Available disk: {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.10
+        for: 5m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Disk usage above 90% — chain may halt"
+          description: "Only {{ $value | humanizePercentage }} disk remaining on {{ $labels.instance }}"
+
+      - alert: MemoryHigh
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10
+        for: 5m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Less than 10% memory available"
+          description: "{{ $labels.instance }} is under memory pressure"
+
+      - alert: NodeDown
+        expr: up{job="tamizhi-chain"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Tamizhi node is down"
+          description: "{{ $labels.instance }} has been unreachable for 1 minute"

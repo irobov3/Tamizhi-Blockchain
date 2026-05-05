@@ -1,0 +1,17 @@
+{
+  "name": "@tamizhi/ws-relay",
+  "version": "1.0.0",
+  "main": "dist/relay.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/relay.js",
+    "dev": "ts-node src/relay.ts"
+  },
+  "dependencies": { "ws": "^8.17.0" },
+  "devDependencies": {
+    "@types/ws": "^8.5.10",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.5",
+    "ts-node": "^10.9.2"
+  }
+}

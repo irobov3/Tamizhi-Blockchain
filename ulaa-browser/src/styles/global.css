@@ -1,0 +1,86 @@
+/* Ulaa Browser — Global Styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Ulaa color palette — Tamil saffron + deep space */
+  --bg:         #0C0C1A;
+  --surface:    #13132A;
+  --surface2:   #1A1A35;
+  --border:     #252545;
+  --border2:    #2E2E55;
+  --primary:    #FF6B2B;   /* Tamil saffron */
+  --primary-dim:#FF6B2B30;
+  --ai:         #9B5DE5;   /* AI purple */
+  --ai-dim:     #9B5DE520;
+  --text:       #E8E8F5;
+  --text2:      #9090B0;
+  --text3:      #505070;
+  --success:    #2DD4BF;
+  --danger:     #FF4757;
+  --warning:    #FFD166;
+
+  --chrome-h:   90px;   /* TabBar + Toolbar */
+  --tab-h:      38px;
+  --toolbar-h:  52px;
+  --radius:     10px;
+  --radius-sm:  6px;
+  --shadow:     0 4px 24px rgba(0,0,0,0.5);
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans Tamil', 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* Focus ring */
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* Reset button */
+button {
+  background: none; border: none; cursor: pointer;
+  color: inherit; font-family: inherit; font-size: inherit;
+  padding: 0;
+}
+
+/* Reset input */
+input, textarea {
+  background: none; border: none; outline: none;
+  color: inherit; font-family: inherit; font-size: inherit;
+}
+
+/* Transitions */
+.fade-in { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Loading shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Dot bounce (AI thinking) */
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1.1); opacity: 1; }
+}
