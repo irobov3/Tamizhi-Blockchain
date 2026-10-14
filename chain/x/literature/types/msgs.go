@@ -42,6 +42,7 @@ type MsgSubmitWork struct {
 func (msg *MsgSubmitWork) Reset()         {}
 func (msg *MsgSubmitWork) String() string  { return msg.Title }
 func (msg *MsgSubmitWork) ProtoMessage()   {}
+func (*MsgSubmitWork) Descriptor() ([]byte, []int) { return []byte{}, []int{0} }
 
 // NewMsgSubmitWork creates a new MsgSubmitWork.
 func NewMsgSubmitWork(
@@ -137,6 +138,7 @@ type MsgUpdateArweave struct {
 func (msg *MsgUpdateArweave) Reset()         {}
 func (msg *MsgUpdateArweave) String() string  { return msg.WorkID }
 func (msg *MsgUpdateArweave) ProtoMessage()   {}
+func (*MsgUpdateArweave) Descriptor() ([]byte, []int) { return []byte{}, []int{0} }
 
 // NewMsgUpdateArweave creates a new MsgUpdateArweave.
 func NewMsgUpdateArweave(submitter, workID, arweaveTxID string) *MsgUpdateArweave {
@@ -206,6 +208,7 @@ type MsgVerifyWork struct {
 func (msg *MsgVerifyWork) Reset()         {}
 func (msg *MsgVerifyWork) String() string  { return msg.WorkID }
 func (msg *MsgVerifyWork) ProtoMessage()   {}
+func (*MsgVerifyWork) Descriptor() ([]byte, []int) { return []byte{}, []int{0} }
 
 // NewMsgVerifyWork creates a new MsgVerifyWork.
 func NewMsgVerifyWork(curator, workID, notes string) *MsgVerifyWork {

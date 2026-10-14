@@ -64,9 +64,16 @@ warn()  { echo "[WARN]  $*" >&2; }
 error() { echo "[ERROR] $*" >&2; exit 1; }
 separator() { echo "------------------------------------------------------------"; }
 
-# Ensure the tamizhi binary is on PATH
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CHAIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 if ! command -v "$BINARY" &>/dev/null; then
-  error "'$BINARY' not found on PATH. Run 'make install' first."
+  if [ -f "$CHAIN_DIR/build/tamizhi" ]; then
+    BINARY="$CHAIN_DIR/build/tamizhi"
+  elif [ -f "$CHAIN_DIR/tamizhi" ]; then
+    BINARY="$CHAIN_DIR/tamizhi"
+  else
+    error "'$BINARY' not found on PATH or in $CHAIN_DIR/build/. Run 'make build' first."
+  fi
 fi
 
 info "Tamizhi node initialization"
@@ -124,21 +131,6 @@ info "Step 3: Adding genesis account ($GENESIS_COINS)..."
 info "  Genesis account added."
 
 # -------------------------------------------------------
-# Step 4: Create gentx
-# -------------------------------------------------------
-info "Step 4: Creating gentx (self-delegation: $VALIDATOR_STAKE)..."
-"$BINARY" genesis gentx "$KEY_NAME" "$VALIDATOR_STAKE" \
-  --chain-id                  "$CHAIN_ID" \
-  --home                      "$HOME_DIR" \
-  --keyring-backend            "$KEYRING_BACKEND" \
-  --moniker                   "$MONIKER" \
-  --commission-rate           "$COMMISSION_RATE" \
-  --commission-max-rate       "$COMMISSION_MAX_RATE" \
-  --commission-max-change-rate "$COMMISSION_MAX_CHANGE_RATE" \
-  --min-self-delegation       "$MIN_SELF_DELEGATION"
-info "  gentx created."
-
-# -------------------------------------------------------
 # Step 4b: Patch genesis denom from 'stake' to 'utmz'
 #
 # The SDK's `init` command hard-codes bond_denom="stake" in several
@@ -185,6 +177,21 @@ PYEOF
 info "  Denom patched."
 
 # -------------------------------------------------------
+# Step 4: Create gentx
+# -------------------------------------------------------
+info "Step 4: Creating gentx (self-delegation: $VALIDATOR_STAKE)..."
+"$BINARY" genesis gentx "$KEY_NAME" "$VALIDATOR_STAKE" \
+  --chain-id                  "$CHAIN_ID" \
+  --home                      "$HOME_DIR" \
+  --keyring-backend            "$KEYRING_BACKEND" \
+  --moniker                   "$MONIKER" \
+  --commission-rate           "$COMMISSION_RATE" \
+  --commission-max-rate       "$COMMISSION_MAX_RATE" \
+  --commission-max-change-rate "$COMMISSION_MAX_CHANGE_RATE" \
+  --min-self-delegation       "$MIN_SELF_DELEGATION"
+info "  gentx created."
+
+# -------------------------------------------------------
 # Step 5: Collect gentxs
 # -------------------------------------------------------
 info "Step 5: Collecting gentxs..."
@@ -195,7 +202,7 @@ info "  Gentxs collected."
 # Step 6: Validate genesis
 # -------------------------------------------------------
 info "Step 6: Validating genesis file..."
-"$BINARY" genesis validate --home "$HOME_DIR"
+"$BINARY" genesis validate "$GENESIS_FILE"
 info "  Genesis is valid."
 
 # -------------------------------------------------------

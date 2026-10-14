@@ -1,38 +1,43 @@
-'use client';
+'use client'
 
 interface VerifiedBadgeProps {
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md'
+  verifiedBy?: string
 }
 
-export default function VerifiedBadge({ size = 'md' }: VerifiedBadgeProps) {
-  const fontSize = size === 'sm' ? '11px' : '12px';
-  const iconSize = size === 'sm' ? '12px' : '14px';
+export default function VerifiedBadge({ size = 'md', verifiedBy }: VerifiedBadgeProps) {
+  const isSm = size === 'sm'
+  const truncated = verifiedBy
+    ? `${verifiedBy.slice(0, 10)}…${verifiedBy.slice(-6)}`
+    : undefined
 
   return (
     <span
+      title={verifiedBy ? `Verified by ${verifiedBy}` : 'Verified on Tamizhi Chain'}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '4px',
-        background: '#dcfce7',
-        color: '#15803d',
+        gap: '5px',
+        background: 'rgba(34,197,94,0.12)',
+        border: '1px solid rgba(34,197,94,0.3)',
+        color: '#22c55e',
         borderRadius: '999px',
-        fontSize,
+        fontSize: isSm ? '11px' : '12px',
         fontWeight: 600,
-        padding: size === 'sm' ? '2px 6px' : '3px 10px',
+        padding: isSm ? '2px 8px' : '4px 12px',
         whiteSpace: 'nowrap',
+        letterSpacing: '0.02em',
       }}
-      title="Verified on-chain"
     >
+      {/* Checkmark circle */}
       <svg
-        width={iconSize}
-        height={iconSize}
+        width={isSm ? '12' : '14'}
+        height={isSm ? '12' : '14'}
         viewBox="0 0 16 16"
         fill="none"
-        xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        <circle cx="8" cy="8" r="8" fill="#15803d" />
+        <circle cx="8" cy="8" r="7" fill="#22c55e" />
         <path
           d="M4.5 8.5L6.5 10.5L11.5 5.5"
           stroke="white"
@@ -41,7 +46,12 @@ export default function VerifiedBadge({ size = 'md' }: VerifiedBadgeProps) {
           strokeLinejoin="round"
         />
       </svg>
-      Verified
+      Verified on Chain
+      {!isSm && truncated && (
+        <span style={{ opacity: 0.7, fontSize: '10px', marginLeft: '2px' }}>
+          · {truncated}
+        </span>
+      )}
     </span>
-  );
+  )
 }

@@ -191,3 +191,6 @@ web-build/
 *.temp
 tmp/
 temp/
+
+*.dylib
+*.orig

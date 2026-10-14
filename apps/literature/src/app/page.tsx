@@ -1,237 +1,255 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import WorkCard from '@/components/WorkCard';
-import { getExplorerWorks } from '@/lib/api';
-import type { LiteraryWork, WorkType } from '@/lib/types';
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import WorkCard from '@/components/WorkCard'
+import { getWorks } from '@/lib/api'
+import { MOCK_WORKS } from '@/lib/api'
+import type { LiteratureWork } from '@/lib/types'
+import { formatNumber } from '@/lib/format'
 
-const WORK_TYPES: { value: WorkType | ''; label: string }[] = [
-  { value: '',        label: 'All types' },
-  { value: 'poem',    label: 'Poem (கவிதை)' },
-  { value: 'prose',   label: 'Prose (உரைநடை)' },
-  { value: 'epic',    label: 'Epic (காவியம்)' },
-  { value: 'grammar', label: 'Grammar (இலக்கணம்)' },
-];
+const GENRES: { value: LiteratureWork['genre'] | ''; label: string; labelTamil?: string }[] = [
+  { value: '',            label: 'All Works' },
+  { value: 'poetry',     label: 'Poetry',     labelTamil: 'கவிதை' },
+  { value: 'epic',       label: 'Epic',       labelTamil: 'காவியம்' },
+  { value: 'grammar',    label: 'Grammar',    labelTamil: 'இலக்கணம்' },
+  { value: 'philosophy', label: 'Philosophy', labelTamil: 'தத்துவம்' },
+  { value: 'history',    label: 'History',    labelTamil: 'வரலாறு' },
+]
 
-const LANGUAGES = ['All languages', 'Tamil', 'Sanskrit', 'Telugu', 'Kannada', 'Malayalam'];
-
-const selectStyle: React.CSSProperties = {
-  padding: '10px 14px',
-  border: '2px solid #e8e0d0',
-  borderRadius: '8px',
-  background: '#fff',
-  color: '#2d1b00',
-  fontSize: '14px',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  outline: 'none',
-  minWidth: '160px',
-};
+const PAGE_SIZE = 9
 
 export default function BrowsePage() {
-  const [works, setWorks] = useState<LiteraryWork[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [works, setWorks] = useState<LiteratureWork[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [activeGenre, setActiveGenre] = useState<LiteratureWork['genre'] | ''>('')
+  const [page, setPage] = useState(0)
 
-  // Filters
-  const [workType, setWorkType] = useState<WorkType | ''>('');
-  const [language, setLanguage] = useState('');
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  // Derived stats from works
+  const authors = new Set(MOCK_WORKS.map((w) => w.author)).size
+  const verified = MOCK_WORKS.filter((w) => w.verified).length
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    getExplorerWorks({
-      work_type: workType || undefined,
-      language: language || undefined,
-      verified: verifiedOnly || undefined,
+    let cancelled = false
+    setLoading(true)
+    getWorks(PAGE_SIZE, page * PAGE_SIZE).then(({ works: w, total: t }) => {
+      if (cancelled) return
+      // Filter by genre client-side if needed
+      const filtered = activeGenre ? w.filter((wk) => wk.genre === activeGenre) : w
+      setWorks(filtered)
+      setTotal(activeGenre ? filtered.length : t)
+      setLoading(false)
+    }).catch(() => {
+      if (cancelled) return
+      const filtered = activeGenre
+        ? MOCK_WORKS.filter((w) => w.genre === activeGenre)
+        : MOCK_WORKS
+      const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+      setWorks(paged)
+      setTotal(filtered.length)
+      setLoading(false)
     })
-      .then((data) => { if (!cancelled) { setWorks(data); setLoading(false); } })
-      .catch((err) => { if (!cancelled) { setError(err.message); setLoading(false); } });
+    return () => { cancelled = true }
+  }, [activeGenre, page])
 
-    return () => { cancelled = true; };
-  }, [workType, language, verifiedOnly]);
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  function handleGenre(g: LiteratureWork['genre'] | '') {
+    setActiveGenre(g)
+    setPage(0)
+  }
 
   return (
     <div>
       {/* ── Hero ── */}
-      <section
-        style={{
-          background: 'linear-gradient(135deg, #c0392b 0%, #962d22 60%, #7b1e17 100%)',
-          color: '#fff',
-          padding: '64px 24px 72px',
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Decorative Tamil pattern overlay */}
-        <div
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            opacity: 0.06,
-            fontSize: '120px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+      <section style={{
+        background: 'linear-gradient(160deg, #1a0a40 0%, #0e0824 50%, #0a0618 100%)',
+        borderBottom: '1px solid #2a1f5c',
+        padding: '72px 24px 64px',
+        textAlign: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Background Tamil glyph decoration */}
+        <div aria-hidden="true" style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'Noto Sans Tamil, serif',
+          fontSize: '280px',
+          color: '#d4a017',
+          opacity: 0.03,
+          userSelect: 'none',
+          letterSpacing: '-20px',
+          pointerEvents: 'none',
+        }}>
+          தமிழ்
+        </div>
+
+        <div style={{ position: 'relative', maxWidth: '720px', margin: '0 auto' }}>
+          <p style={{
             fontFamily: 'Noto Sans Tamil, serif',
-            userSelect: 'none',
-            letterSpacing: '20px',
-            overflow: 'hidden',
-          }}
-        >
-          ஓம் தமிழ் ஓம்
-        </div>
-
-        <div style={{ position: 'relative', maxWidth: '700px', margin: '0 auto' }}>
-          <p
-            style={{
-              fontFamily: 'Noto Sans Tamil, serif',
-              fontSize: '18px',
-              color: '#f8d7a4',
-              marginBottom: '12px',
-              letterSpacing: '0.05em',
-            }}
-          >
-            தமிழ் இலக்கிய பாரம்பரியம் — சங்கிலித்தொழில்நுட்பத்தில்
+            fontSize: '18px',
+            color: '#d4a017',
+            marginBottom: '16px',
+            letterSpacing: '0.04em',
+          }}>
+            தமிழ் இலக்கிய பாரம்பரியம்
           </p>
-          <h1
-            style={{
-              fontSize: 'clamp(28px, 5vw, 48px)',
-              fontWeight: 700,
-              lineHeight: 1.2,
-              margin: '0 0 16px',
-            }}
-          >
-            Tamil Literary Heritage<br />on the Blockchain
+          <h1 style={{
+            fontSize: 'clamp(28px, 5vw, 52px)',
+            fontWeight: 700,
+            color: '#fdf6e3',
+            lineHeight: 1.15,
+            margin: '0 0 20px',
+            letterSpacing: '-0.01em',
+          }}>
+            Tamil Heritage<br />on the Blockchain
           </h1>
-          <p
-            style={{
-              fontSize: '17px',
-              color: 'rgba(255,255,255,0.82)',
-              maxWidth: '520px',
-              margin: '0 auto',
-            }}
-          >
-            Discover and preserve thousands of years of Tamil literature —
-            immutably recorded, openly accessible, NFT-owned.
+          <p style={{
+            fontSize: '17px',
+            color: '#8a8aa0',
+            maxWidth: '520px',
+            margin: '0 auto 40px',
+            lineHeight: 1.7,
+          }}>
+            Discover thousands of years of Tamil literature — immutably preserved,
+            openly accessible, and community-verified on the Tamizhi chain.
           </p>
+
+          {/* Stats */}
+          <div style={{
+            display: 'inline-flex',
+            gap: '0',
+            background: '#1a1040',
+            border: '1px solid #2a1f5c',
+            borderRadius: '14px',
+            overflow: 'hidden',
+          }}>
+            {[
+              { value: formatNumber(MOCK_WORKS.length), label: 'Works' },
+              { value: formatNumber(authors), label: 'Authors' },
+              { value: formatNumber(verified), label: 'Verified' },
+            ].map((s, i) => (
+              <div key={s.label} style={{
+                padding: '16px 32px',
+                borderLeft: i > 0 ? '1px solid #2a1f5c' : 'none',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '24px', fontWeight: 700, color: '#d4a017', lineHeight: 1 }}>
+                  {s.value}
+                </div>
+                <div style={{ fontSize: '12px', color: '#8a8aa0', marginTop: '4px', letterSpacing: '0.06em' }}>
+                  {s.label.toUpperCase()}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── Filter bar ── */}
-      <section
-        style={{
-          background: '#fff',
-          borderBottom: '1px solid #e8e0d0',
-          padding: '16px 24px',
-          position: 'sticky',
-          top: '64px',
-          zIndex: 50,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            display: 'flex',
-            gap: '12px',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-          }}
-        >
-          <label style={{ fontSize: '14px', fontWeight: 600, color: '#7a6545' }}>
-            Filter:
-          </label>
-
-          {/* Work type */}
-          <select
-            value={workType}
-            onChange={(e) => setWorkType(e.target.value as WorkType | '')}
-            style={selectStyle}
-            aria-label="Filter by work type"
-          >
-            {WORK_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-
-          {/* Language */}
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value === 'All languages' ? '' : e.target.value)}
-            style={selectStyle}
-            aria-label="Filter by language"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l} value={l}>{l}</option>
-            ))}
-          </select>
-
-          {/* Verified toggle */}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              color: '#4a3520',
-              userSelect: 'none',
-              padding: '8px 14px',
-              border: '2px solid',
-              borderColor: verifiedOnly ? '#15803d' : '#e8e0d0',
-              borderRadius: '8px',
-              background: verifiedOnly ? '#dcfce7' : '#fff',
-              transition: 'all 0.15s',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={verifiedOnly}
-              onChange={(e) => setVerifiedOnly(e.target.checked)}
-              style={{ accentColor: '#15803d', width: '16px', height: '16px' }}
-            />
-            Verified only
-          </label>
-
-          {/* Result count */}
-          {!loading && (
-            <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#9b8469' }}>
-              {works.length} work{works.length !== 1 ? 's' : ''} found
-            </span>
-          )}
-        </div>
-      </section>
-
-      {/* ── Work grid ── */}
-      <section
-        style={{
-          maxWidth: '1200px',
+      {/* ── Genre Filter Tabs ── */}
+      <section style={{
+        background: '#0a0618',
+        borderBottom: '1px solid #2a1f5c',
+        padding: '0 24px',
+        position: 'sticky',
+        top: '68px',
+        zIndex: 50,
+      }}>
+        <div style={{
+          maxWidth: '1280px',
           margin: '0 auto',
-          padding: '40px 24px 64px',
-        }}
-      >
+          display: 'flex',
+          gap: '4px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}>
+          {GENRES.map((g) => {
+            const isActive = activeGenre === g.value
+            return (
+              <button
+                key={g.value}
+                onClick={() => handleGenre(g.value)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '16px 20px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: isActive ? '2px solid #d4a017' : '2px solid transparent',
+                  color: isActive ? '#d4a017' : '#8a8aa0',
+                  fontWeight: isActive ? 600 : 400,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'color 0.15s, border-color 0.15s',
+                  fontFamily: 'inherit',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = '#fdf6e3'
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = '#8a8aa0'
+                }}
+              >
+                {g.label}
+                {g.labelTamil && (
+                  <span style={{
+                    fontFamily: 'Noto Sans Tamil, serif',
+                    fontSize: '12px',
+                    opacity: 0.6,
+                  }}>
+                    {g.labelTamil}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+
+          {/* CTA */}
+          <div style={{ marginLeft: 'auto', padding: '10px 0', flexShrink: 0 }}>
+            <Link
+              href="/submit"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'linear-gradient(135deg, #d4a017, #b8860b)',
+                color: '#0a0618',
+                padding: '8px 18px',
+                borderRadius: '7px',
+                fontSize: '13px',
+                fontWeight: 700,
+              }}
+            >
+              + Submit a Work
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Works Grid ── */}
+      <section style={{ maxWidth: '1280px', margin: '0 auto', padding: '40px 24px 64px' }}>
         {loading && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '24px',
-            }}
-          >
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: '24px',
+          }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
                 style={{
-                  height: '200px',
-                  background: '#f0e8d8',
-                  borderRadius: '12px',
+                  height: '260px',
+                  background: '#1a1040',
+                  borderRadius: '14px',
+                  border: '1px solid #2a1f5c',
                   animation: 'pulse 1.5s ease-in-out infinite',
                 }}
               />
@@ -239,70 +257,97 @@ export default function BrowsePage() {
           </div>
         )}
 
-        {error && (
-          <div
-            style={{
-              background: '#fee2e2',
-              border: '1px solid #fca5a5',
-              borderRadius: '10px',
-              padding: '20px',
-              color: '#991b1b',
-              textAlign: 'center',
-            }}
-          >
-            <strong>Could not load works.</strong>
-            <br />
-            <span style={{ fontSize: '14px' }}>{error}</span>
-            <br />
-            <span style={{ fontSize: '13px', marginTop: '8px', display: 'block' }}>
-              Make sure the chain and explorer API are running at their configured URLs.
-            </span>
-          </div>
-        )}
-
-        {!loading && !error && works.length === 0 && (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '64px 24px',
-              color: '#7a6545',
-            }}
-          >
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📜</div>
-            <h2 style={{ fontSize: '20px', marginBottom: '8px', color: '#4a3520' }}>
+        {!loading && works.length === 0 && (
+          <div style={{
+            textAlign: 'center',
+            padding: '80px 24px',
+            color: '#8a8aa0',
+          }}>
+            <div style={{ fontSize: '56px', marginBottom: '20px', opacity: 0.5 }}>📚</div>
+            <h2 style={{ fontSize: '20px', marginBottom: '8px', color: '#fdf6e3' }}>
               No works found
             </h2>
-            <p style={{ fontSize: '15px' }}>
-              Try adjusting your filters, or{' '}
-              <a href="/submit" style={{ color: '#c0392b', fontWeight: 600 }}>
+            <p style={{ fontSize: '15px', marginBottom: '24px' }}>
+              Try a different genre or{' '}
+              <Link href="/submit" style={{ color: '#d4a017', fontWeight: 600 }}>
                 submit a new work
-              </a>
+              </Link>
               .
             </p>
           </div>
         )}
 
-        {!loading && !error && works.length > 0 && (
-          <div
-            style={{
+        {!loading && works.length > 0 && (
+          <>
+            <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '14px', color: '#8a8aa0' }}>
+                {total > 0 && `${formatNumber(total)} work${total !== 1 ? 's' : ''}`}
+                {activeGenre && ` in ${activeGenre}`}
+              </span>
+            </div>
+            <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
               gap: '24px',
-            }}
-          >
-            {works.map((work) => (
-              <WorkCard key={work.work_id} work={work} />
-            ))}
-          </div>
+            }}>
+              {works.map((work) => (
+                <WorkCard key={work.id} work={work} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '12px',
+                marginTop: '48px',
+              }}>
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  style={{
+                    padding: '9px 20px',
+                    background: page === 0 ? '#1a1040' : '#2a1f5c',
+                    border: '1px solid #2a1f5c',
+                    borderRadius: '8px',
+                    color: page === 0 ? '#8a8aa0' : '#fdf6e3',
+                    cursor: page === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  ← Previous
+                </button>
+
+                <span style={{ fontSize: '14px', color: '#8a8aa0' }}>
+                  Page {page + 1} of {totalPages}
+                </span>
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  style={{
+                    padding: '9px 20px',
+                    background: page >= totalPages - 1 ? '#1a1040' : '#2a1f5c',
+                    border: '1px solid #2a1f5c',
+                    borderRadius: '8px',
+                    color: page >= totalPages - 1 ? '#8a8aa0' : '#fdf6e3',
+                    cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
     </div>
-  );
+  )
 }

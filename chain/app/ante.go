@@ -219,9 +219,9 @@ func (d FeeBurnDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, 
 	if fees.IsZero() {
 		return next(ctx, tx, simulate)
 	}
-	payer := sdk.AccAddress(feeTx.FeePayer())
-	// Best-effort: don't fail the tx if burn fails.
-	if err := d.feeBurnKeeper.BurnFee(ctx, payer, fees); err != nil {
+	// Burn 20% from FeeCollector where DeductFee deposited the fee, preserving 100% total fee deduction
+	feeCollector := FeeCollectorAddress()
+	if err := d.feeBurnKeeper.BurnFee(ctx, feeCollector, fees); err != nil {
 		ctx.Logger().Error("fee burn failed", "error", err)
 	}
 	return next(ctx, tx, simulate)
@@ -245,7 +245,6 @@ func NewAnteHandler(options AnteHandlerOptions) (sdk.AnteHandler, error) {
 		NewBlocklistDecorator(options.SecurityKeeper), // position 1 — after context setup
 		NewRateLimitDecorator(),                       // position 2
 		NewMinFeeDecorator(),                          // position 3
-		NewFeeBurnDecorator(options.FeeBurnKeeper),    // position 4 — burn 20% of fees
 		ante.NewExtensionOptionsDecorator(nil),
 		ante.NewValidateBasicDecorator(),
 		ante.NewTxTimeoutHeightDecorator(),
@@ -257,6 +256,7 @@ func NewAnteHandler(options AnteHandlerOptions) (sdk.AnteHandler, error) {
 			options.FeegrantKeeper,
 			options.TxFeeChecker,
 		),
+		NewFeeBurnDecorator(options.FeeBurnKeeper),    // position 4 — burn 20% of collected fees from FeeCollector
 		ante.NewSetPubKeyDecorator(options.AccountKeeper),
 		ante.NewValidateSigCountDecorator(options.AccountKeeper),
 		ante.NewSigGasConsumeDecorator(options.AccountKeeper, options.SigGasConsumer),

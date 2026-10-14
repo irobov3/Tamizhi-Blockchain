@@ -1,102 +1,96 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { getWork, getNFTsForWork } from '@/lib/api';
-import type { LiteraryWork, NFTToken } from '@/lib/types';
-import WorkBadge from '@/components/WorkBadge';
-import VerifiedBadge from '@/components/VerifiedBadge';
-import NFTList from '@/components/NFTList';
-import { truncateHash, formatEra } from '@/lib/format';
+import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
+import Link from 'next/link'
+import { getWork, MOCK_WORKS } from '@/lib/api'
+import type { LiteratureWork } from '@/lib/types'
+import { formatGenre, genreColor, formatNumber, truncateHash, formatDate } from '@/lib/format'
+import VerifiedBadge from '@/components/VerifiedBadge'
+import NFTList from '@/components/NFTList'
 
-const CHAIN_ID = process.env.NEXT_PUBLIC_CHAIN_ID || 'tamizhi-testnet-1';
-const REST = process.env.NEXT_PUBLIC_REST_URL || 'http://localhost:1317';
-const RPC  = process.env.NEXT_PUBLIC_RPC_URL  || 'http://localhost:26657';
+const CHAIN_ID = process.env.NEXT_PUBLIC_CHAIN_ID || 'tamizhi-testnet-1'
+const REST = process.env.NEXT_PUBLIC_REST_URL || 'http://localhost:1317'
+const RPC = process.env.NEXT_PUBLIC_RPC_URL || 'http://localhost:26657'
+const EXPLORER_BASE = process.env.NEXT_PUBLIC_EXPLORER_BASE || 'http://localhost:3001'
 
-// ── Keplr types (minimal) ──
 declare global {
   interface Window {
     keplr?: {
-      enable(chainId: string): Promise<void>;
+      enable(chainId: string): Promise<void>
       getOfflineSigner(chainId: string): {
         getAccounts(): Promise<Array<{ address: string; pubkey: Uint8Array }>>;
-      };
-      experimentalSuggestChain(config: unknown): Promise<void>;
-    };
+      }
+      experimentalSuggestChain(config: unknown): Promise<void>
+    }
   }
 }
 
-const SECTION_STYLE: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #e8e0d0',
-  borderRadius: '12px',
-  padding: '24px',
-  marginBottom: '24px',
-};
+interface NFTToken {
+  token_id?: string
+  tokenId?: string
+  owner: string
+  minted_at?: string
+}
 
-const LABEL_STYLE: React.CSSProperties = {
-  fontSize: '12px',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.08em',
-  color: '#9b8469',
-  marginBottom: '4px',
-};
-
-function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
+function MetaField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: '16px' }}>
-      <div style={LABEL_STYLE}>{label}</div>
-      <div style={{ fontSize: '15px', color: '#2d1b00' }}>{value}</div>
+    <div>
+      <div style={{
+        fontSize: '11px',
+        fontWeight: 600,
+        letterSpacing: '0.1em',
+        color: '#8a8aa0',
+        marginBottom: '6px',
+        textTransform: 'uppercase',
+      }}>
+        {label}
+      </div>
+      <div style={{ fontSize: '15px', color: '#fdf6e3' }}>{children}</div>
     </div>
-  );
+  )
 }
 
 export default function WorkDetailPage() {
-  const { work_id } = useParams<{ work_id: string }>();
+  const { work_id } = useParams<{ work_id: string }>()
 
-  const [work, setWork] = useState<LiteraryWork | null>(null);
-  const [nfts, setNfts] = useState<NFTToken[]>([]);
-  const [loadingWork, setLoadingWork] = useState(true);
-  const [loadingNfts, setLoadingNfts] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [copied, setCopied] = useState(false);
-  const [keplrAddress, setKeplrAddress] = useState<string | null>(null);
-  const [minting, setMinting] = useState(false);
-  const [mintResult, setMintResult] = useState<{ txHash: string } | null>(null);
-  const [mintError, setMintError] = useState<string | null>(null);
+  const [work, setWork] = useState<LiteratureWork | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [nfts] = useState<NFTToken[]>([])
+  const [nftsLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [keplrAddress, setKeplrAddress] = useState<string | null>(null)
+  const [minting, setMinting] = useState(false)
+  const [mintResult, setMintResult] = useState<{ txHash: string } | null>(null)
+  const [mintError, setMintError] = useState<string | null>(null)
+  const [relatedWorks, setRelatedWorks] = useState<LiteratureWork[]>([])
 
   useEffect(() => {
-    if (!work_id) return;
-    setLoadingWork(true);
+    if (!work_id) return
+    setLoading(true)
     getWork(work_id)
-      .then((w) => { setWork(w); setLoadingWork(false); })
-      .catch((e) => { setError(e.message); setLoadingWork(false); });
+      .then((w) => {
+        setWork(w)
+        setLoading(false)
+        // Related: same genre or author
+        const related = MOCK_WORKS.filter(
+          (m) => m.id !== w.id && (m.genre === w.genre || m.author === w.author)
+        ).slice(0, 3)
+        setRelatedWorks(related)
+      })
+      .catch((e) => {
+        setError(e.message)
+        setLoading(false)
+      })
+  }, [work_id])
 
-    setLoadingNfts(true);
-    getNFTsForWork(work_id)
-      .then((n) => { setNfts(n); setLoadingNfts(false); })
-      .catch(() => { setLoadingNfts(false); });
-  }, [work_id]);
-
-  function copyHash() {
-    if (!work?.content_hash) return;
-    navigator.clipboard.writeText(work.content_hash).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  const connectKeplr = useCallback(async () => {
+  async function connectKeplr() {
     if (!window.keplr) {
-      alert('Keplr wallet extension is not installed. Please install it from https://www.keplr.app/');
-      return;
+      alert('Please install the Keplr wallet extension from https://www.keplr.app/')
+      return null
     }
     try {
-      // Suggest the Tamizhi chain config if not already added
       await window.keplr.experimentalSuggestChain({
         chainId: CHAIN_ID,
         chainName: 'Tamizhi Testnet',
@@ -111,411 +105,597 @@ export default function WorkDetailPage() {
           bech32PrefixConsAddr: 'tamizhivalcons',
           bech32PrefixConsPub: 'tamizhivalconspub',
         },
-        currencies: [{ coinDenom: 'TMZH', coinMinimalDenom: 'utmzh', coinDecimals: 6 }],
-        feeCurrencies: [{ coinDenom: 'TMZH', coinMinimalDenom: 'utmzh', coinDecimals: 6, gasPriceStep: { low: 0.01, average: 0.025, high: 0.04 } }],
-        stakeCurrency: { coinDenom: 'TMZH', coinMinimalDenom: 'utmzh', coinDecimals: 6 },
-      });
-      await window.keplr.enable(CHAIN_ID);
-      const signer = window.keplr.getOfflineSigner(CHAIN_ID);
-      const accounts = await signer.getAccounts();
-      if (accounts[0]) setKeplrAddress(accounts[0].address);
-    } catch (e: unknown) {
-      console.error('Keplr connect error:', e);
+        currencies: [{ coinDenom: 'TMZ', coinMinimalDenom: 'utmz', coinDecimals: 6 }],
+        feeCurrencies: [{
+          coinDenom: 'TMZ', coinMinimalDenom: 'utmz', coinDecimals: 6,
+          gasPriceStep: { low: 0.01, average: 0.025, high: 0.04 },
+        }],
+        stakeCurrency: { coinDenom: 'TMZ', coinMinimalDenom: 'utmz', coinDecimals: 6 },
+      })
+      await window.keplr.enable(CHAIN_ID)
+      const signer = window.keplr.getOfflineSigner(CHAIN_ID)
+      const accounts = await signer.getAccounts()
+      if (accounts[0]) {
+        setKeplrAddress(accounts[0].address)
+        return accounts[0].address
+      }
+      return null
+    } catch (e) {
+      console.error('Keplr error:', e)
+      return null
     }
-  }, []);
+  }
 
   async function handleMintNFT() {
-    if (!keplrAddress) {
-      await connectKeplr();
-      return;
+    if (!work) return
+    let addr = keplrAddress
+    if (!addr) {
+      addr = await connectKeplr()
+      if (!addr) return
     }
-    if (!work) return;
-    setMinting(true);
-    setMintError(null);
-
+    setMinting(true)
+    setMintError(null)
     try {
-      if (!window.keplr) throw new Error('Keplr not available');
-      const { SigningStargateClient } = await import('@cosmjs/stargate');
-      const { Registry } = await import('@cosmjs/proto-signing');
-
-      const signer = window.keplr.getOfflineSigner(CHAIN_ID);
-      const registry = new Registry();
-
-      const client = await SigningStargateClient.connectWithSigner(RPC, signer, { registry });
-
+      if (!window.keplr) throw new Error('Keplr not available')
+      const { SigningStargateClient } = await import('@cosmjs/stargate')
+      const { Registry } = await import('@cosmjs/proto-signing')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const signer = window.keplr.getOfflineSigner(CHAIN_ID) as any
+      const client = await SigningStargateClient.connectWithSigner(RPC, signer, { registry: new Registry() })
       const msg = {
         typeUrl: '/tamizhi.nft.v1.MsgMintNFT',
-        value: {
-          creator: keplrAddress,
-          workId: work.work_id,
-        },
-      };
-
-      const fee = {
-        amount: [{ denom: 'utmzh', amount: '5000' }],
+        value: { creator: addr, workId: work.id },
+      }
+      const result = await client.signAndBroadcast(addr, [msg], {
+        amount: [{ denom: 'utmz', amount: '5000' }],
         gas: '200000',
-      };
-
-      const result = await client.signAndBroadcast(keplrAddress, [msg], fee, '');
-      if (result.code !== 0) throw new Error(`Tx failed: ${result.rawLog}`);
-      setMintResult({ txHash: result.transactionHash });
-
-      // Refresh NFT list
-      getNFTsForWork(work.work_id).then(setNfts).catch(() => undefined);
+      }, '')
+      if (result.code !== 0) throw new Error(`Tx failed: ${result.rawLog}`)
+      setMintResult({ txHash: result.transactionHash })
     } catch (e: unknown) {
-      setMintError(e instanceof Error ? e.message : 'Mint failed');
+      setMintError(e instanceof Error ? e.message : 'Mint failed')
     } finally {
-      setMinting(false);
+      setMinting(false)
     }
   }
 
-  // ── Loading state ──
-  if (loadingWork) {
-    return (
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '48px 24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {[200, 120, 160].map((h, i) => (
-            <div
-              key={i}
-              style={{
-                height: `${h}px`,
-                background: '#f0e8d8',
-                borderRadius: '12px',
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }}
-            />
-          ))}
-        </div>
-        <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
-      </div>
-    );
+  function copyTxHash() {
+    if (!work?.txHash) return
+    navigator.clipboard.writeText(work.txHash).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
-  // ── Error state ──
+  // Loading
+  if (loading) {
+    return (
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 24px' }}>
+        {[240, 180, 140, 200].map((h, i) => (
+          <div key={i} style={{
+            height: `${h}px`,
+            background: '#1a1040',
+            borderRadius: '14px',
+            marginBottom: '20px',
+            animation: 'pulse 1.5s ease-in-out infinite',
+          }} />
+        ))}
+      </div>
+    )
+  }
+
+  // Error
   if (error || !work) {
     return (
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '48px 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📜</div>
-        <h1 style={{ fontSize: '24px', marginBottom: '8px', color: '#2d1b00' }}>Work not found</h1>
-        <p style={{ color: '#7a6545', marginBottom: '24px' }}>
-          {error ?? `No work exists with ID "${work_id}".`}
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: '56px', marginBottom: '20px', opacity: 0.5 }}>📚</div>
+        <h1 style={{ fontSize: '24px', marginBottom: '12px', color: '#fdf6e3' }}>Work not found</h1>
+        <p style={{ color: '#8a8aa0', marginBottom: '28px' }}>
+          {error ?? `No work with ID "${work_id}" could be found.`}
         </p>
-        <Link
-          href="/"
-          style={{
-            background: '#c0392b',
-            color: '#fff',
-            padding: '10px 24px',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: 600,
-          }}
-        >
+        <Link href="/" style={{
+          background: 'linear-gradient(135deg, #d4a017, #b8860b)',
+          color: '#0a0618',
+          padding: '12px 28px',
+          borderRadius: '8px',
+          fontWeight: 700,
+          fontSize: '15px',
+        }}>
           Back to Browse
         </Link>
       </div>
-    );
+    )
   }
 
+  const color = genreColor(work.genre)
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px 64px' }}>
+    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '40px 24px 80px' }}>
       {/* Breadcrumb */}
-      <nav style={{ marginBottom: '24px', fontSize: '13px', color: '#9b8469' }} aria-label="Breadcrumb">
-        <Link href="/" style={{ color: '#c0392b', textDecoration: 'none' }}>Browse</Link>
+      <nav style={{ marginBottom: '28px', fontSize: '13px', color: '#8a8aa0' }}>
+        <Link href="/" style={{ color: '#d4a017' }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline')}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none')}
+        >
+          Browse
+        </Link>
         <span style={{ margin: '0 8px' }}>›</span>
         <span>{work.title}</span>
       </nav>
 
-      {/* ── Title section ── */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px', alignItems: 'center' }}>
-          <WorkBadge type={work.work_type} />
-          {work.verified && <VerifiedBadge />}
+      {/* ── Title Hero ── */}
+      <div style={{
+        background: '#1a1040',
+        border: '1px solid #2a1f5c',
+        borderRadius: '16px',
+        borderTop: `4px solid ${color}`,
+        padding: '36px',
+        marginBottom: '24px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Genre + Verified */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{
+            background: `${color}18`,
+            border: `1px solid ${color}40`,
+            color,
+            borderRadius: '7px',
+            fontSize: '12px',
+            fontWeight: 600,
+            padding: '4px 12px',
+            letterSpacing: '0.04em',
+          }}>
+            {formatGenre(work.genre)}
+          </span>
+          <span style={{
+            background: 'rgba(0,212,255,0.1)',
+            border: '1px solid rgba(0,212,255,0.25)',
+            color: '#00d4ff',
+            borderRadius: '7px',
+            fontSize: '12px',
+            fontWeight: 500,
+            padding: '4px 12px',
+          }}>
+            {work.language === 'bilingual' ? 'Bilingual' : 'Tamil'}
+          </span>
+          {work.verified && <VerifiedBadge verifiedBy={work.verifiedBy} />}
         </div>
-        <h1
-          style={{
-            fontSize: 'clamp(24px, 4vw, 36px)',
+
+        {/* Tamil title */}
+        {work.titleTamil && (
+          <h1 style={{
             fontFamily: 'Noto Sans Tamil, serif',
-            color: '#2d1b00',
-            lineHeight: 1.3,
-            margin: '0 0 8px',
-          }}
-        >
-          {work.title}
-        </h1>
-        {work.title_transliteration && (
-          <p style={{ fontSize: '18px', color: '#7a6545', fontStyle: 'italic', margin: 0 }}>
-            {work.title_transliteration}
-          </p>
+            fontSize: 'clamp(32px, 5vw, 52px)',
+            fontWeight: 700,
+            color: '#d4a017',
+            margin: '0 0 10px',
+            lineHeight: 1.2,
+          }}>
+            {work.titleTamil}
+          </h1>
         )}
-      </div>
 
-      {/* ── Metadata ── */}
-      <div style={SECTION_STYLE}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#2d1b00', marginBottom: '20px' }}>
-          Work Metadata
+        {/* English title */}
+        <h2 style={{
+          fontSize: work.titleTamil ? '22px' : 'clamp(24px, 4vw, 40px)',
+          fontWeight: work.titleTamil ? 500 : 700,
+          color: '#fdf6e3',
+          margin: '0 0 20px',
+          opacity: work.titleTamil ? 0.75 : 1,
+        }}>
+          {work.title}
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0 32px' }}>
-          <MetaRow label="Author" value={work.author} />
-          <MetaRow label="Language" value={work.language} />
-          <MetaRow label="Era" value={formatEra(work.century, work.era)} />
-          <MetaRow label="Work ID" value={<code style={{ fontSize: '13px' }}>{work.work_id}</code>} />
-          {work.submitter && <MetaRow label="Submitted by" value={
-            <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>{work.submitter}</code>
-          } />}
-        </div>
-      </div>
 
-      {/* ── Content hash ── */}
-      <div style={SECTION_STYLE}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#2d1b00', marginBottom: '16px' }}>
-          Content Hash
-        </h2>
-        <div
-          style={{
-            display: 'flex',
+        {/* Author + Period */}
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <circle cx="10" cy="7" r="4" stroke="#8a8aa0" strokeWidth="1.5" />
+              <path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="#8a8aa0" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <div>
+              {work.authorTamil && (
+                <span style={{
+                  fontFamily: 'Noto Sans Tamil, serif',
+                  fontSize: '17px',
+                  color: '#fdf6e3',
+                  marginRight: '8px',
+                }}>
+                  {work.authorTamil}
+                </span>
+              )}
+              <span style={{ fontSize: '15px', color: '#8a8aa0' }}>{work.author}</span>
+            </div>
+          </div>
+          <span style={{
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: '12px',
-            background: '#f5f0e8',
-            padding: '14px 16px',
-            borderRadius: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <code
-            style={{
-              fontSize: '14px',
-              color: '#4a3520',
-              fontFamily: 'monospace',
-              flex: 1,
-              wordBreak: 'break-all',
-            }}
-          >
-            {truncateHash(work.content_hash, 12, 12)}
-          </code>
-          <button
-            onClick={copyHash}
-            style={{
-              background: copied ? '#dcfce7' : '#fff',
-              color: copied ? '#15803d' : '#c0392b',
-              border: `1px solid ${copied ? '#86efac' : '#c0392b'}`,
-              borderRadius: '6px',
-              padding: '6px 14px',
-              fontSize: '13px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {copied ? 'Copied!' : 'Copy hash'}
-          </button>
+            gap: '5px',
+            background: 'rgba(138,138,160,0.12)',
+            border: '1px solid rgba(138,138,160,0.2)',
+            color: '#8a8aa0',
+            borderRadius: '6px',
+            fontSize: '13px',
+            padding: '4px 12px',
+          }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M8 4.5v4l2.5 2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            {work.period}
+          </span>
+          {work.viewCount !== undefined && (
+            <span style={{ fontSize: '13px', color: '#8a8aa0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+                <path d="M1 10s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z" stroke="currentColor" strokeWidth="1.4" />
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.4" />
+              </svg>
+              {formatNumber(work.viewCount)} views
+            </span>
+          )}
         </div>
-        <p style={{ fontSize: '12px', color: '#9b8469', marginTop: '8px' }}>
-          SHA-256 content hash of the literary work stored immutably on Tamizhi blockchain.
+      </div>
+
+      {/* ── Description ── */}
+      <div style={{
+        background: '#1a1040',
+        border: '1px solid #2a1f5c',
+        borderRadius: '14px',
+        padding: '28px',
+        marginBottom: '24px',
+      }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fdf6e3', marginBottom: '14px' }}>
+          About this Work
+        </h3>
+        <p style={{ fontSize: '15px', color: '#8a8aa0', lineHeight: 1.8, margin: 0 }}>
+          {work.description}
         </p>
       </div>
 
-      {/* ── Arweave ── */}
-      {work.arweave_id && (
-        <div style={SECTION_STYLE}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#2d1b00', marginBottom: '12px' }}>
-            Permanent Storage
-          </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div
-              style={{
-                background: '#f5f0e8',
-                padding: '10px 16px',
-                borderRadius: '8px',
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-              }}
-            >
-              <span style={{ fontSize: '20px' }}>🌐</span>
-              <div>
-                <div style={{ fontSize: '12px', color: '#9b8469', marginBottom: '2px' }}>Arweave ID</div>
-                <code style={{ fontSize: '13px', wordBreak: 'break-all' }}>
-                  {truncateHash(work.arweave_id, 16, 8)}
-                </code>
+      {/* ── Tamil Excerpt ── */}
+      {(work.excerptTamil || work.excerpt) && (
+        <div style={{
+          background: 'linear-gradient(135deg, #1a1040, #0e0824)',
+          border: '1px solid #d4a01730',
+          borderLeft: '4px solid #d4a017',
+          borderRadius: '14px',
+          padding: '28px 32px',
+          marginBottom: '24px',
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '20px',
+            right: '24px',
+            fontSize: '40px',
+            opacity: 0.06,
+            color: '#d4a017',
+            lineHeight: 1,
+            userSelect: 'none',
+          }}>
+            ❝
+          </div>
+          <div style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', color: '#d4a01780', marginBottom: '14px' }}>
+            EXCERPT · மேற்கோள்
+          </div>
+          {work.excerptTamil && (
+            <p style={{
+              fontFamily: 'Noto Sans Tamil, serif',
+              fontSize: '22px',
+              color: '#d4a017',
+              fontStyle: 'italic',
+              lineHeight: 2,
+              margin: '0 0 12px',
+            }}>
+              {work.excerptTamil}
+            </p>
+          )}
+          {work.excerpt && (
+            <p style={{
+              fontSize: '15px',
+              color: '#8a8aa0',
+              fontStyle: 'italic',
+              lineHeight: 1.7,
+              margin: 0,
+            }}>
+              {work.excerpt}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Blockchain Info ── */}
+      <div style={{
+        background: '#1a1040',
+        border: '1px solid #2a1f5c',
+        borderRadius: '14px',
+        padding: '28px',
+        marginBottom: '24px',
+      }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fdf6e3', marginBottom: '20px' }}>
+          Blockchain Information
+        </h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+          gap: '20px',
+          marginBottom: '20px',
+        }}>
+          <MetaField label="Work ID">
+            <code style={{ fontSize: '13px', color: '#00d4ff', fontFamily: 'monospace' }}>
+              {work.id}
+            </code>
+          </MetaField>
+
+          {work.txHash && (
+            <MetaField label="Transaction Hash">
+              <code style={{ fontSize: '12px', color: '#00d4ff', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                {truncateHash(work.txHash, 10, 8)}
+              </code>
+            </MetaField>
+          )}
+
+          {work.submitter && (
+            <MetaField label="Submitted By">
+              <code style={{ fontSize: '12px', color: '#8a8aa0', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                {truncateHash(work.submitter, 14, 8)}
+              </code>
+            </MetaField>
+          )}
+
+          {work.nftTokenId && (
+            <MetaField label="NFT Token ID">
+              <code style={{ fontSize: '13px', color: '#d4a017', fontFamily: 'monospace' }}>
+                #{work.nftTokenId}
+              </code>
+            </MetaField>
+          )}
+
+          {work.createdAt && (
+            <MetaField label="Submitted On">
+              <span style={{ color: '#8a8aa0' }}>{formatDate(work.createdAt)}</span>
+            </MetaField>
+          )}
+        </div>
+
+        {/* Arweave */}
+        {work.arweaveId && (
+          <div style={{
+            background: '#0e0824',
+            border: '1px solid #2a1f5c',
+            borderRadius: '10px',
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            flexWrap: 'wrap',
+            marginBottom: '16px',
+          }}>
+            <div>
+              <div style={{ fontSize: '11px', color: '#8a8aa0', letterSpacing: '0.08em', marginBottom: '6px' }}>
+                ARWEAVE PERMANENT STORAGE
               </div>
+              <code style={{ fontSize: '13px', color: '#00d4ff', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                {truncateHash(work.arweaveId, 16, 8)}
+              </code>
             </div>
             <a
-              href={`https://arweave.net/${work.arweave_id}`}
+              href={`https://arweave.net/${work.arweaveId}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                background: '#c0392b',
-                color: '#fff',
-                padding: '10px 18px',
-                borderRadius: '8px',
-                fontSize: '14px',
+                background: 'rgba(0,212,255,0.1)',
+                border: '1px solid rgba(0,212,255,0.3)',
+                color: '#00d4ff',
+                padding: '8px 16px',
+                borderRadius: '7px',
+                fontSize: '13px',
                 fontWeight: 600,
-                textDecoration: 'none',
                 whiteSpace: 'nowrap',
               }}
             >
               View on Arweave ↗
             </a>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── On-chain verification ── */}
-      <div style={SECTION_STYLE}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#2d1b00', marginBottom: '16px' }}>
-          On-Chain Verification
-        </h2>
-        {work.verified ? (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <span
+        {/* Verify + Copy buttons */}
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {work.txHash && (
+            <>
+              <a
+                href={`${EXPLORER_BASE}/tx/${work.txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  background: '#dcfce7',
-                  borderRadius: '50%',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  flexShrink: 0,
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #d4a017, #b8860b)',
+                  color: '#0a0618',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 700,
                 }}
               >
-                ✓
-              </span>
-              <div>
-                <div style={{ fontWeight: 600, color: '#15803d' }}>Verified on Tamizhi blockchain</div>
-                <div style={{ fontSize: '13px', color: '#7a6545' }}>
-                  This work has been cryptographically verified and is permanently stored.
-                </div>
-              </div>
-            </div>
-            {work.block_height && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div style={{ background: '#f5f0e8', padding: '12px', borderRadius: '8px' }}>
-                  <div style={LABEL_STYLE}>Block Height</div>
-                  <code style={{ fontSize: '14px' }}>#{work.block_height.toLocaleString()}</code>
-                </div>
-                {work.tx_hash && (
-                  <div style={{ background: '#f5f0e8', padding: '12px', borderRadius: '8px' }}>
-                    <div style={LABEL_STYLE}>Transaction</div>
-                    <code style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-                      {truncateHash(work.tx_hash, 10, 8)}
-                    </code>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: '#92400e',
-              background: '#fef3c7',
-              padding: '14px 18px',
-              borderRadius: '8px',
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>⏳</span>
-            <span>This work is pending on-chain verification.</span>
-          </div>
-        )}
+                Verify on Chain ↗
+              </a>
+              <button
+                onClick={copyTxHash}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: copied ? 'rgba(34,197,94,0.1)' : '#0e0824',
+                  border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : '#2a1f5c'}`,
+                  color: copied ? '#22c55e' : '#8a8aa0',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {copied ? '✓ Copied!' : 'Copy TX Hash'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* ── NFT Ownership ── */}
-      <div style={SECTION_STYLE}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '16px',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#2d1b00' }}>
+      {/* ── NFT Section ── */}
+      <div style={{
+        background: '#1a1040',
+        border: '1px solid #2a1f5c',
+        borderRadius: '14px',
+        padding: '28px',
+        marginBottom: '24px',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fdf6e3', margin: 0 }}>
             NFT Ownership
             {nfts.length > 0 && (
-              <span
-                style={{
-                  marginLeft: '10px',
-                  background: '#f5f0e8',
-                  padding: '2px 10px',
-                  borderRadius: '999px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: '#7a6545',
-                }}
-              >
+              <span style={{
+                marginLeft: '10px',
+                background: 'rgba(212,160,23,0.15)',
+                color: '#d4a017',
+                padding: '2px 10px',
+                borderRadius: '999px',
+                fontSize: '13px',
+              }}>
                 {nfts.length}
               </span>
             )}
-          </h2>
+          </h3>
 
-          {/* Mint button */}
           {mintResult ? (
-            <div style={{ fontSize: '14px', color: '#15803d', fontWeight: 600 }}>
-              Minted! Tx: {truncateHash(mintResult.txHash, 8, 6)}
+            <div style={{ fontSize: '14px', color: '#22c55e', fontWeight: 600 }}>
+              ✓ Minted! {truncateHash(mintResult.txHash, 8, 6)}
             </div>
           ) : (
             <button
               onClick={handleMintNFT}
               disabled={minting}
               style={{
-                background: keplrAddress ? '#c0392b' : '#f39c12',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
+                background: keplrAddress
+                  ? 'linear-gradient(135deg, #d4a017, #b8860b)'
+                  : 'rgba(212,160,23,0.15)',
+                border: '1px solid rgba(212,160,23,0.4)',
+                color: keplrAddress ? '#0a0618' : '#d4a017',
                 padding: '10px 20px',
+                borderRadius: '8px',
                 fontSize: '14px',
-                fontWeight: 600,
+                fontWeight: 700,
                 cursor: minting ? 'wait' : 'pointer',
                 opacity: minting ? 0.7 : 1,
-                transition: 'opacity 0.2s',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s',
               }}
             >
-              {minting
-                ? 'Minting…'
-                : keplrAddress
-                ? 'Mint NFT'
-                : 'Connect Keplr to Mint'}
+              {minting ? 'Minting…' : keplrAddress ? 'Mint NFT' : 'Connect Keplr to Mint'}
             </button>
           )}
         </div>
 
         {mintError && (
-          <div
-            style={{
-              background: '#fee2e2',
-              color: '#991b1b',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              fontSize: '13px',
-              marginBottom: '16px',
-            }}
-          >
+          <div style={{
+            background: 'rgba(239,68,68,0.1)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            color: '#ef4444',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            marginBottom: '16px',
+          }}>
             {mintError}
           </div>
         )}
 
         {keplrAddress && (
-          <div style={{ fontSize: '12px', color: '#9b8469', marginBottom: '12px' }}>
-            Connected: <code>{truncateHash(keplrAddress, 12, 8)}</code>
+          <div style={{ fontSize: '12px', color: '#8a8aa0', marginBottom: '14px' }}>
+            Connected:{' '}
+            <code style={{ color: '#d4a017' }}>
+              {truncateHash(keplrAddress, 14, 8)}
+            </code>
           </div>
         )}
 
-        <NFTList nfts={nfts} loading={loadingNfts} />
+        <NFTList nfts={nfts} loading={nftsLoading} />
       </div>
+
+      {/* ── Related Works ── */}
+      {relatedWorks.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fdf6e3', marginBottom: '20px' }}>
+            Related Works
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: '16px',
+          }}>
+            {relatedWorks.map((rw) => {
+              const rc = genreColor(rw.genre)
+              return (
+                <Link
+                  key={rw.id}
+                  href={`/works/${rw.id}`}
+                  style={{
+                    display: 'block',
+                    background: '#1a1040',
+                    border: '1px solid #2a1f5c',
+                    borderTop: `3px solid ${rc}`,
+                    borderRadius: '12px',
+                    padding: '18px',
+                    transition: 'transform 0.2s, border-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLAnchorElement
+                    el.style.transform = 'translateY(-2px)'
+                    el.style.borderColor = `${rc}60`
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLAnchorElement
+                    el.style.transform = 'translateY(0)'
+                    el.style.borderColor = '#2a1f5c'
+                  }}
+                >
+                  {rw.titleTamil && (
+                    <div style={{
+                      fontFamily: 'Noto Sans Tamil, serif',
+                      fontSize: '18px',
+                      color: '#d4a017',
+                      marginBottom: '4px',
+                    }}>
+                      {rw.titleTamil}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '14px', color: '#fdf6e3', marginBottom: '6px' }}>
+                    {rw.title}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#8a8aa0' }}>
+                    {rw.author} · {rw.period}
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
-  );
+  )
 }

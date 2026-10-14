@@ -1,9 +1,7 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Hash,
@@ -18,31 +16,18 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import { useState } from 'react';
-import { Badge } from '@/components/ui/Badge';
 import { ChainOfflineBanner } from '@/components/explorer/ChainOfflineBanner';
 import { DetailSkeleton } from '@/components/explorer/ExplorerSkeletons';
-import { format } from 'date-fns';
 import {
-  getBlock,
-  getBlockTransactions,
+  getBlockByHeight,
   ExplorerOfflineError,
-  type Block,
+  timeAgo,
+  truncateHash,
+  type BlockDetail,
   type Tx,
 } from '@/lib/explorer-api';
 
-function truncate(s: string, n = 20) {
-  if (!s) return '—';
-  return s.length <= n ? s : `${s.slice(0, n)}...`;
-}
-
-function msgType(tx: Tx): string {
-  const msgs = tx.tx?.body?.messages ?? [];
-  if (msgs.length === 0) return 'unknown';
-  const t = msgs[0]['@type'] ?? '';
-  const parts = t.split('.');
-  return parts[parts.length - 1]?.replace('Msg', '') ?? t;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -54,7 +39,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="p-1 rounded hover:bg-surface-hover text-text-muted hover:text-primary-400 transition-colors"
+      className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-cyan-400 transition-colors"
       title="Copy"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -62,17 +47,57 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function DetailRow({ label, labelTamil, children }: { label: string; labelTamil?: string; children: React.ReactNode }) {
+function DetailRow({
+  label,
+  labelTamil,
+  children,
+}: {
+  label: string;
+  labelTamil?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-background-border/50 last:border-0">
+    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-[#2a1f5c]/50 last:border-0">
       <div className="sm:w-44 flex-shrink-0">
-        <span className="text-text-muted text-sm">{label}</span>
-        {labelTamil && <span className="tamil-text text-text-muted text-xs block">{labelTamil}</span>}
+        <span className="text-gray-400 text-sm">{label}</span>
+        {labelTamil && (
+          <span className="tamil-text text-gray-500 text-xs block">{labelTamil}</span>
+        )}
       </div>
       <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
 }
+
+// ─── Mock data ────────────────────────────────────────────────────────────────
+
+function makeMockBlock(height: number): BlockDetail {
+  return {
+    height,
+    hash: 'A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2C3D4E5F6A1B2',
+    time: new Date(Date.now() - 60000).toISOString(),
+    proposer: 'tamizhi1valoper1abcdef123456789xyz',
+    tx_count: 3,
+    transactions: [
+      {
+        hash: 'TXABC123DEF456789',
+        height,
+        index: 0,
+        sender: 'tamizhi1sender001abc',
+        msg_types: ['MsgSend'],
+        code: 0,
+        gas_used: 52000,
+        gas_wanted: 80000,
+        fee_amount: '500',
+        fee_denom: 'utmz',
+        memo: 'Demo tx',
+        time: new Date(Date.now() - 55000).toISOString(),
+      },
+    ],
+  };
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function BlockDetailPage({
   params,
@@ -82,29 +107,36 @@ export default function BlockDetailPage({
   const { height: heightStr } = use(params);
   const height = Number(heightStr);
 
-  const blockQuery = useQuery<Block, Error>({
-    queryKey: ['explorer', 'block', height],
-    queryFn: () => getBlock(height),
-    retry: false,
-    staleTime: 60_000,
-  });
+  const [block, setBlock] = useState<BlockDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
-  const txsQuery = useQuery<Tx[], Error>({
-    queryKey: ['explorer', 'blockTxs', height],
-    queryFn: () => getBlockTransactions(height),
-    retry: false,
-    staleTime: 60_000,
-  });
+  const fetchBlock = async () => {
+    setLoading(true);
+    try {
+      const b = await getBlockByHeight(height);
+      setBlock(b);
+      setIsOffline(false);
+      setNotFound(false);
+    } catch (err) {
+      if (err instanceof ExplorerOfflineError) {
+        setIsOffline(true);
+        setBlock(makeMockBlock(height));
+      } else {
+        setNotFound(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const isOffline =
-    blockQuery.error instanceof ExplorerOfflineError ||
-    txsQuery.error instanceof ExplorerOfflineError;
+  useEffect(() => {
+    fetchBlock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [height]);
 
-  const block = blockQuery.data;
-  const txs = txsQuery.data ?? [];
-  const header = block?.block.header;
-  const blockHash = block?.block_id.hash ?? '';
-  const txCount = block?.block.data.txs?.length ?? 0;
+  const txs: Tx[] = block?.transactions ?? [];
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -112,56 +144,56 @@ export default function BlockDetailPage({
       <div className="flex items-center gap-3">
         <Link
           href="/explorer/blocks"
-          className="p-2 rounded-xl hover:bg-surface-hover text-text-muted hover:text-white transition-colors"
+          className="p-2 rounded-xl hover:bg-white/5 text-gray-500 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <Layers className="w-5 h-5 text-primary-400" />
+            <Layers className="w-5 h-5 text-cyan-400" />
             Block #{height.toLocaleString()}
           </h1>
-          <p className="tamil-text text-primary-400 text-xs">தொகுதி விவரங்கள்</p>
+          <p className="tamil-text text-cyan-400 text-xs">தொகுதி விவரங்கள்</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Link
             href={`/explorer/blocks/${height - 1}`}
-            className="p-2 rounded-xl hover:bg-surface-hover text-text-muted hover:text-white transition-colors"
-            title="Previous block"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#1a1040] border border-[#2a1f5c] hover:border-cyan-400/30 text-gray-400 hover:text-white transition-all text-xs"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5" /> Prev
           </Link>
           <Link
             href={`/explorer/blocks/${height + 1}`}
-            className="p-2 rounded-xl hover:bg-surface-hover text-text-muted hover:text-white transition-colors"
-            title="Next block"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#1a1040] border border-[#2a1f5c] hover:border-cyan-400/30 text-gray-400 hover:text-white transition-all text-xs"
           >
-            <ChevronRight className="w-4 h-4" />
+            Next <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
 
-      {isOffline && <ChainOfflineBanner onRetry={() => { blockQuery.refetch(); txsQuery.refetch(); }} />}
+      {isOffline && (
+        <ChainOfflineBanner
+          onRetry={() => {
+            fetchBlock();
+          }}
+        />
+      )}
 
-      {blockQuery.isLoading ? (
+      {loading ? (
         <DetailSkeleton />
-      ) : blockQuery.error && !isOffline ? (
-        <div className="rounded-xl bg-background-card border border-background-border p-8 text-center text-text-muted">
+      ) : notFound ? (
+        <div className="rounded-xl bg-[#1a1040] border border-[#2a1f5c] p-8 text-center text-gray-500">
           Block #{height.toLocaleString()} not found
         </div>
-      ) : header ? (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          {/* Block header details */}
-          <div className="rounded-xl bg-background-card border border-background-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-background-border">
+      ) : block ? (
+        <div className="space-y-6">
+          {/* Block info card */}
+          <div className="rounded-xl bg-[#1a1040] border border-[#2a1f5c] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#2a1f5c]">
               <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Hash className="w-4 h-4 text-primary-400" />
-                Block Header
-                <span className="tamil-text text-primary-400 text-xs font-normal">தலைப்பு</span>
+                <Hash className="w-4 h-4 text-cyan-400" />
+                Block Info
+                <span className="tamil-text text-cyan-400 text-xs font-normal">தொகுதி தகவல்</span>
               </h2>
             </div>
             <div className="px-5">
@@ -173,120 +205,115 @@ export default function BlockDetailPage({
 
               <DetailRow label="Block Hash" labelTamil="தொகுதி ஹாஷ்">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-text-primary break-all">{blockHash}</span>
-                  {blockHash && <CopyButton text={blockHash} />}
+                  <span className="font-mono text-xs text-gray-300 break-all">{block.hash}</span>
+                  {block.hash && <CopyButton text={block.hash} />}
                 </div>
               </DetailRow>
 
               <DetailRow label="Time" labelTamil="நேரம்">
-                <div className="flex items-center gap-2 text-text-primary text-sm">
-                  <Clock className="w-3.5 h-3.5 text-text-muted" />
-                  {header.time
-                    ? format(new Date(header.time), 'PPpp')
-                    : '—'}
+                <div className="flex items-center gap-2 text-gray-300 text-sm">
+                  <Clock className="w-3.5 h-3.5 text-gray-500" />
+                  {new Date(block.time).toLocaleString()} ({timeAgo(block.time)})
                 </div>
-              </DetailRow>
-
-              <DetailRow label="Chain ID" labelTamil="சங்கிலி ID">
-                <Badge variant="secondary" size="sm">{header.chain_id}</Badge>
               </DetailRow>
 
               <DetailRow label="Proposer" labelTamil="முன்மொழிவாளர்">
                 <div className="flex items-center gap-2">
-                  <User className="w-3.5 h-3.5 text-text-muted" />
-                  <span className="font-mono text-xs text-text-primary break-all">
-                    {header.proposer_address || '—'}
+                  <User className="w-3.5 h-3.5 text-gray-500" />
+                  <span className="font-mono text-xs text-gray-300 break-all">
+                    {block.proposer || '—'}
                   </span>
-                  {header.proposer_address && (
-                    <CopyButton text={header.proposer_address} />
-                  )}
+                  {block.proposer && <CopyButton text={block.proposer} />}
                 </div>
               </DetailRow>
 
-              <DetailRow label="App Hash" labelTamil="பயன்பாடு ஹாஷ்">
-                <span className="font-mono text-xs text-text-secondary break-all">
-                  {header.app_hash || '—'}
-                </span>
-              </DetailRow>
-
               <DetailRow label="Transactions" labelTamil="பரிவர்த்தனைகள்">
-                <Badge variant={txCount > 0 ? 'primary' : 'default'}>
-                  {txCount} tx{txCount !== 1 ? 's' : ''}
-                </Badge>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    block.tx_count > 0
+                      ? 'bg-cyan-500/20 text-cyan-400'
+                      : 'bg-gray-700/50 text-gray-500'
+                  }`}
+                >
+                  {block.tx_count} tx{block.tx_count !== 1 ? 's' : ''}
+                </span>
               </DetailRow>
             </div>
           </div>
 
-          {/* Transactions in this block */}
-          <div className="rounded-xl bg-background-card border border-background-border overflow-hidden">
-            <div className="px-5 py-4 border-b border-background-border">
+          {/* Transactions table */}
+          <div className="rounded-xl bg-[#1a1040] border border-[#2a1f5c] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#2a1f5c]">
               <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <ArrowRightLeft className="w-4 h-4 text-primary-400" />
+                <ArrowRightLeft className="w-4 h-4 text-cyan-400" />
                 Transactions
-                <span className="tamil-text text-primary-400 text-xs font-normal">பரிவர்த்தனைகள்</span>
-                <Badge variant="default" size="xs" className="ml-1">{txs.length}</Badge>
+                <span className="tamil-text text-cyan-400 text-xs font-normal">பரிவர்த்தனைகள்</span>
+                <span className="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-700/50 text-gray-400 font-mono">
+                  {txs.length}
+                </span>
               </h2>
             </div>
 
-            {txsQuery.isLoading ? (
-              <div className="p-8 text-center">
-                <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
-              </div>
-            ) : txs.length === 0 ? (
-              <p className="text-text-muted text-sm text-center py-8">
+            {txs.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-8">
                 No transactions in this block
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-background-border/60">
-                      <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5">Tx Hash</th>
-                      <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5 hidden sm:table-cell">Type</th>
-                      <th className="text-right text-xs text-text-muted font-medium px-4 py-2.5 hidden md:table-cell">Gas Used</th>
-                      <th className="text-center text-xs text-text-muted font-medium px-4 py-2.5">Status</th>
+                    <tr className="border-b border-[#2a1f5c]/60">
+                      <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5">Tx Hash</th>
+                      <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5 hidden sm:table-cell">From</th>
+                      <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5 hidden md:table-cell">Type</th>
+                      <th className="text-right text-xs text-gray-500 font-medium px-4 py-2.5 hidden lg:table-cell">Fee</th>
+                      <th className="text-center text-xs text-gray-500 font-medium px-4 py-2.5">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {txs.map((tx, i) => (
-                      <motion.tr
+                    {txs.map((tx) => (
+                      <tr
                         key={tx.hash}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.03 }}
-                        className="border-b border-background-border/40 hover:bg-surface-hover transition-colors"
+                        className="border-b border-[#2a1f5c]/40 hover:bg-white/5 transition-colors"
                       >
                         <td className="px-4 py-3">
                           <Link
                             href={`/explorer/txs/${tx.hash}`}
-                            className="text-primary-400 hover:text-primary-300 font-mono text-xs transition-colors"
+                            className="text-cyan-400 hover:text-cyan-300 font-mono text-xs transition-colors"
                           >
-                            {truncate(tx.hash, 20)}
+                            {truncateHash(tx.hash, 8)}
                           </Link>
                         </td>
                         <td className="px-4 py-3 hidden sm:table-cell">
-                          <Badge variant="secondary" size="xs">{msgType(tx)}</Badge>
+                          <span className="text-gray-400 font-mono text-xs">
+                            {tx.sender ? `${tx.sender.slice(0, 14)}...` : '—'}
+                          </span>
                         </td>
-                        <td className="px-4 py-3 text-right hidden md:table-cell">
-                          <span className="text-text-secondary font-mono text-xs">
-                            {Number(tx.tx_result.gas_used).toLocaleString()}
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-300 font-mono">
+                            {(tx.msg_types[0] ?? 'unknown').replace('Msg', '')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right hidden lg:table-cell">
+                          <span className="font-mono text-xs text-gray-400">
+                            {(Number(tx.fee_amount) / 1_000_000).toFixed(4)} TMZ
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">
-                          {tx.tx_result.code === 0 ? (
+                          {tx.code === 0 ? (
                             <CheckCircle className="w-4 h-4 text-green-400 mx-auto" />
                           ) : (
                             <XCircle className="w-4 h-4 text-red-400 mx-auto" />
                           )}
                         </td>
-                      </motion.tr>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
       ) : null}
     </div>
   );

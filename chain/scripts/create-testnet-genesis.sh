@@ -15,7 +15,16 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CHAIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BINARY="${BINARY:-tamizhi}"
+if ! command -v "$BINARY" &>/dev/null; then
+  if [ -f "$CHAIN_DIR/build/tamizhi" ]; then
+    BINARY="$CHAIN_DIR/build/tamizhi"
+  elif [ -f "$CHAIN_DIR/tamizhi" ]; then
+    BINARY="$CHAIN_DIR/tamizhi"
+  fi
+fi
 CHAIN_ID="tamizhi-testnet-1"
 DENOM="utmz"
 HOME_DIR="$(mktemp -d -t tamizhi-genesis-XXXXXX)"
@@ -133,7 +142,7 @@ gov_params.update({
     "min_initial_deposit_ratio":      "0.200000000000000000",
     "expedited_voting_period":        "86400s",
     "expedited_threshold":            "0.667000000000000000",
-    "expedited_min_value_percent":    "0.500000000000000000",
+    "expedited_min_deposit":          [{"denom": "utmz", "amount": "50000000"}],
     "burn_vote_quorum":               False,
     "burn_proposal_deposit_prevote":  False,
     "burn_vote_veto":                 True,
@@ -157,7 +166,7 @@ mint_params.update({
 # ── Slashing ──────────────────────────────────────────────────────────────
 slashing_params = app.setdefault("slashing", {}).setdefault("params", {})
 slashing_params.update({
-    "signed_blocks_window":      "100",
+    "signed_blocks_window":      "2000",
     "min_signed_per_window":     "0.500000000000000000",
     "downtime_jail_duration":    "600s",
     "slash_fraction_double_sign":"0.050000000000000000",
@@ -174,7 +183,6 @@ wasm_params = app.setdefault("wasm", {}).setdefault("params", {})
 wasm_params.update({
     "code_upload_access":           {"permission": "Everybody", "addresses": []},
     "instantiate_default_permission":"Everybody",
-    "max_wasm_code_size":           819200,
 })
 
 # ── Tamizhi custom modules (empty fresh state) ────────────────────────────
@@ -294,7 +302,7 @@ log "Step 5/7 — Collecting gentxs..."
 # Step 6: Validate genesis
 # ---------------------------------------------------------------------------
 log "Step 6/7 — Validating genesis..."
-"$BINARY" genesis validate --home "$HOME_DIR" \
+"$BINARY" genesis validate "$GENESIS" \
   && log "  Genesis is valid." \
   || die "Genesis validation failed. Check $GENESIS for errors."
 

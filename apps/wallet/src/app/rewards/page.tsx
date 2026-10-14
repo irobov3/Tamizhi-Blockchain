@@ -1,356 +1,280 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useWallet } from '@/hooks/useWallet';
-import { getRewardRecords, getRewardRules, type RewardRecord, type RewardRule } from '@/lib/api';
+import TxStatus, { type TxState } from '@/components/TxStatus';
+import { getValidators, getDelegations, getRewards, formatTMZ, type Validator, type Delegation } from '@/lib/api';
+import { claimRewards } from '@/lib/keplr';
 
-const UTMZ_FACTOR = 1_000_000;
+const EXPLORER = process.env.NEXT_PUBLIC_EXPLORER_URL ?? 'https://explorer.tamizhi.ai';
 
-function formatUtmz(amount: string): string {
-  const n = parseInt(amount, 10);
-  if (isNaN(n)) return '0 TMZ';
-  return `${(n / UTMZ_FACTOR).toFixed(4)} TMZ`;
+// Mock rewards history (real txs would require indexer query)
+const MOCK_HISTORY = [
+  { type: 'Staking Reward', amount: '1250000', date: new Date(Date.now() - 86400000).toISOString() },
+  { type: 'Staking Reward', amount: '980000', date: new Date(Date.now() - 172800000).toISOString() },
+  { type: 'Staking Reward', amount: '1100000', date: new Date(Date.now() - 259200000).toISOString() },
+];
+
+function formatDate(ts: string): string {
+  try { return new Date(ts).toLocaleString(); } catch { return ts; }
 }
 
-function formatTimestamp(ts: string): string {
-  try {
-    return new Date(ts).toLocaleString();
-  } catch {
-    return ts;
-  }
-}
-
-function totalEarned(records: RewardRecord[]): string {
-  const total = records.reduce((sum, r) => sum + (parseInt(r.amount, 10) || 0), 0);
-  return (total / UTMZ_FACTOR).toFixed(4);
+function commissionPct(rate: string): string {
+  return `${(parseFloat(rate) * 100).toFixed(1)}%`;
 }
 
 export default function RewardsPage() {
-  const { address, isConnected } = useWallet();
+  const { address, isConnected, refresh } = useWallet();
 
-  const [rules, setRules] = useState<RewardRule[]>([]);
-  const [records, setRecords] = useState<RewardRecord[]>([]);
-  const [rulesLoading, setRulesLoading] = useState(true);
-  const [recordsLoading, setRecordsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validators, setValidators] = useState<Validator[]>([]);
+  const [delegations, setDelegations] = useState<Delegation[]>([]);
+  const [totalRewards, setTotalRewards] = useState('0');
+  const [loading, setLoading] = useState(false);
+  const [claimTxState, setClaimTxState] = useState<TxState>({ status: 'idle' });
 
-  useEffect(() => {
-    async function loadRules() {
-      setRulesLoading(true);
-      try {
-        const data = await getRewardRules();
-        setRules(data);
-      } catch (err: any) {
-        setError(err?.message ?? 'Failed to load reward rules.');
-      } finally {
-        setRulesLoading(false);
-      }
-    }
-    loadRules();
-  }, []);
-
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!address) return;
-    async function loadRecords() {
-      setRecordsLoading(true);
-      try {
-        const data = await getRewardRecords(address!);
-        const sorted = [...data].sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        );
-        setRecords(sorted);
-      } catch (err: any) {
-        setError(err?.message ?? 'Failed to load reward records.');
-      } finally {
-        setRecordsLoading(false);
-      }
+    setLoading(true);
+    try {
+      const [valRes, delRes, rwdRes] = await Promise.allSettled([
+        getValidators(),
+        getDelegations(address),
+        getRewards(address),
+      ]);
+      if (valRes.status === 'fulfilled') setValidators(valRes.value);
+      if (delRes.status === 'fulfilled') setDelegations(delRes.value);
+      if (rwdRes.status === 'fulfilled') setTotalRewards(rwdRes.value);
+    } finally {
+      setLoading(false);
     }
-    loadRecords();
   }, [address]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const validatorMap = Object.fromEntries(validators.map((v) => [v.operator_address, v]));
+
+  async function handleClaimAll() {
+    if (!address || delegations.length === 0) return;
+    const valAddrs = delegations.map((d) => d.delegation.validator_address);
+    setClaimTxState({ status: 'pending' });
+    try {
+      const hash = await claimRewards(address, valAddrs);
+      setClaimTxState({ status: 'success', txHash: hash });
+      await loadData();
+      await refresh();
+    } catch (err: any) {
+      setClaimTxState({ status: 'error', message: err?.message ?? 'Claim failed' });
+    }
+  }
 
   return (
     <div>
-      <div style={styles.pageHeader}>
-        <h1 style={styles.h1}>Rewards</h1>
-        <p style={styles.subtitle}>Reward rules and your earning history on the Tamizhi chain.</p>
+      <div style={pageHeader}>
+        <h1 style={h1}>Rewards</h1>
+        <p style={subtitle}>View and claim your staking rewards.</p>
       </div>
 
-      {/* Total earned banner */}
-      {isConnected && records.length > 0 && (
-        <div style={styles.totalBanner}>
-          <span style={styles.totalLabel}>Total Earned</span>
-          <span style={styles.totalValue}>{totalEarned(records)} TMZ</span>
-          <span style={styles.totalCount}>{records.length} reward events</span>
-        </div>
-      )}
-
-      {/* Reward Rules */}
-      <section style={styles.section}>
-        <h2 style={styles.h2}>Reward Rules</h2>
-        {error && <div style={styles.errorBox}>{error}</div>}
-        {rulesLoading ? (
-          <div style={styles.loadingGrid}>
-            {[0, 1, 2].map((i) => (
-              <div key={i} style={styles.ruleSkeleton} />
-            ))}
+      {!isConnected ? (
+        <div style={emptyBox}>Connect your wallet to view staking rewards.</div>
+      ) : (
+        <>
+          {/* Total rewards banner */}
+          <div style={rewardBanner}>
+            <div>
+              <div style={bannerLabel}>Total Pending Rewards</div>
+              <div style={bannerAmount}>{formatTMZ(totalRewards)}</div>
+              <div style={bannerSub}>{delegations.length} active delegation{delegations.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div>
+              <button
+                style={{
+                  ...claimBtn,
+                  ...(claimTxState.status === 'pending' || delegations.length === 0
+                    ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                }}
+                onClick={handleClaimAll}
+                disabled={claimTxState.status === 'pending' || delegations.length === 0}
+              >
+                {claimTxState.status === 'pending' ? 'Claiming…' : 'Claim All Rewards'}
+              </button>
+            </div>
           </div>
-        ) : rules.length === 0 ? (
-          <div style={styles.emptyState}>No reward rules found.</div>
-        ) : (
-          <div style={styles.rulesGrid}>
-            {rules.map((rule) => (
-              <div key={rule.id} style={styles.ruleCard}>
-                <div style={styles.ruleHeader}>
-                  <span style={styles.ruleName}>{rule.name}</span>
-                  <span
-                    style={{
-                      ...styles.ruleBadge,
-                      background: rule.active
-                        ? 'rgba(76,175,80,0.18)'
-                        : 'rgba(255,255,255,0.08)',
-                      color: rule.active ? '#4caf50' : 'rgba(253,246,227,0.4)',
-                      border: `1px solid ${rule.active ? 'rgba(76,175,80,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                    }}
-                  >
-                    {rule.active ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <p style={styles.ruleDescription}>{rule.description}</p>
-                <div style={styles.ruleFooter}>
-                  <span style={styles.ruleAmount}>
-                    +{formatUtmz(rule.amount)}
-                  </span>
-                  <span style={styles.ruleCondition}>{rule.condition}</span>
-                </div>
+
+          <TxStatus state={claimTxState} explorerUrl={EXPLORER} />
+
+          {/* Per-validator breakdown */}
+          <section style={section}>
+            <h2 style={h2}>Per-Validator Breakdown</h2>
+            {loading ? (
+              <div style={emptyBox}>Loading…</div>
+            ) : delegations.length === 0 ? (
+              <div style={emptyBox}>No delegations found. Stake TMZ to start earning rewards.</div>
+            ) : (
+              <div style={tableWrap}>
+                <table style={table}>
+                  <thead>
+                    <tr>
+                      {['Validator', 'Commission', 'Delegated', 'Est. Rewards'].map((h) => (
+                        <th key={h} style={th}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {delegations.map((del, i) => {
+                      const valAddr = del.delegation.validator_address;
+                      const val = validatorMap[valAddr];
+                      const share = parseInt(del.balance.amount, 10) /
+                        delegations.reduce((sum, d) => sum + parseInt(d.balance.amount, 10), 0);
+                      const estRewards = Math.floor(parseInt(totalRewards, 10) * share);
+                      return (
+                        <tr key={valAddr} style={i % 2 === 0 ? rowEven : {}}>
+                          <td style={td}>
+                            <div style={{ fontWeight: 600 }}>{val?.description.moniker ?? 'Unknown'}</div>
+                            <div style={{ fontSize: '11px', fontFamily: 'monospace', color: 'rgba(253,246,227,0.35)', marginTop: '2px' }}>
+                              {valAddr.slice(0, 24)}…
+                            </div>
+                          </td>
+                          <td style={td}>
+                            {val ? commissionPct(val.commission.commission_rates.rate) : '—'}
+                          </td>
+                          <td style={{ ...td, color: '#d4a017', fontWeight: 600 }}>
+                            {formatTMZ(del.balance.amount)}
+                          </td>
+                          <td style={{ ...td, color: '#4caf50', fontWeight: 600 }}>
+                            ~{formatTMZ(estRewards)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            )}
+          </section>
 
-      {/* Reward History */}
-      <section style={styles.section}>
-        <h2 style={styles.h2}>Your Reward History</h2>
-        {!isConnected ? (
-          <div style={styles.emptyState}>Connect your wallet to view your reward history.</div>
-        ) : recordsLoading ? (
-          <div style={styles.emptyState}>Loading…</div>
-        ) : records.length === 0 ? (
-          <div style={styles.emptyState}>No reward records found for your address.</div>
-        ) : (
-          <div style={styles.tableWrapper}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>ID</th>
-                  <th style={styles.th}>Amount</th>
-                  <th style={styles.th}>Reason</th>
-                  <th style={styles.th}>Timestamp</th>
-                  <th style={styles.th}>Tx Hash</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((r, i) => (
-                  <tr key={r.id ?? i} style={i % 2 === 0 ? styles.rowEven : styles.rowOdd}>
-                    <td style={styles.td}>
-                      <code style={styles.code}>{r.id?.slice(0, 10) ?? '—'}</code>
-                    </td>
-                    <td style={{ ...styles.td, color: '#f5a623', fontWeight: 600 }}>
-                      {formatUtmz(r.amount)}
-                    </td>
-                    <td style={styles.td}>{r.reason ?? '—'}</td>
-                    <td style={{ ...styles.td, fontSize: '12px', color: 'rgba(253,246,227,0.55)' }}>
-                      {formatTimestamp(r.timestamp)}
-                    </td>
-                    <td style={styles.td}>
-                      {r.tx_hash ? (
-                        <code style={{ ...styles.code, fontSize: '11px' }}>
-                          {r.tx_hash.slice(0, 14)}…
-                        </code>
-                      ) : (
-                        <span style={{ color: 'rgba(253,246,227,0.3)' }}>—</span>
-                      )}
-                    </td>
+          {/* Rewards history (mock) */}
+          <section style={section}>
+            <h2 style={h2}>Rewards History</h2>
+            <div style={tableWrap}>
+              <table style={table}>
+                <thead>
+                  <tr>
+                    {['Type', 'Amount', 'Date'].map((h) => (
+                      <th key={h} style={th}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody>
+                  {MOCK_HISTORY.map((r, i) => (
+                    <tr key={i} style={i % 2 === 0 ? rowEven : {}}>
+                      <td style={td}>{r.type}</td>
+                      <td style={{ ...td, color: '#4caf50', fontWeight: 600 }}>{formatTMZ(r.amount)}</td>
+                      <td style={{ ...td, fontSize: '12px', color: 'rgba(253,246,227,0.5)' }}>{formatDate(r.date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ marginTop: '10px', fontSize: '12px', color: 'rgba(253,246,227,0.3)', textAlign: 'center' }}>
+              Full history requires a chain indexer.
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  pageHeader: { marginBottom: '28px' },
-  h1: {
-    margin: 0,
-    fontSize: '28px',
-    fontWeight: 700,
-    color: '#fdf6e3',
-    letterSpacing: '-0.02em',
-  },
-  subtitle: {
-    margin: '6px 0 0',
-    fontSize: '14px',
-    color: 'rgba(253,246,227,0.5)',
-  },
-  totalBanner: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px',
-    background: 'linear-gradient(135deg, rgba(245,166,35,0.12), rgba(245,166,35,0.06))',
-    border: '1px solid rgba(245,166,35,0.3)',
-    borderRadius: '12px',
-    padding: '18px 24px',
-    marginBottom: '28px',
-    flexWrap: 'wrap',
-  },
-  totalLabel: {
-    fontSize: '13px',
-    color: 'rgba(253,246,227,0.6)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-  },
-  totalValue: {
-    fontSize: '26px',
-    fontWeight: 700,
-    color: '#f5a623',
-  },
-  totalCount: {
-    fontSize: '13px',
-    color: 'rgba(253,246,227,0.4)',
-    marginLeft: 'auto',
-  },
-  section: { marginBottom: '40px' },
-  h2: {
-    margin: '0 0 16px',
-    fontSize: '18px',
-    fontWeight: 600,
-    color: '#fdf6e3',
-  },
-  errorBox: {
-    background: 'rgba(239,83,80,0.1)',
-    border: '1px solid rgba(239,83,80,0.3)',
-    borderRadius: '8px',
-    padding: '12px 16px',
-    color: '#ef5350',
-    fontSize: '14px',
-    marginBottom: '16px',
-  },
-  loadingGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '16px',
-  },
-  ruleSkeleton: {
-    height: '120px',
-    borderRadius: '10px',
-    background: 'rgba(255,255,255,0.05)',
-    animation: 'pulse 1.5s ease-in-out infinite',
-  },
-  rulesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '16px',
-  },
-  ruleCard: {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(245,166,35,0.15)',
-    borderRadius: '10px',
-    padding: '18px 20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  ruleHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  ruleName: {
-    fontSize: '15px',
-    fontWeight: 600,
-    color: '#fdf6e3',
-  },
-  ruleBadge: {
-    fontSize: '11px',
-    fontWeight: 600,
-    padding: '2px 8px',
-    borderRadius: '20px',
-    letterSpacing: '0.04em',
-    textTransform: 'uppercase',
-    flexShrink: 0,
-  },
-  ruleDescription: {
-    margin: 0,
-    fontSize: '13px',
-    color: 'rgba(253,246,227,0.55)',
-    lineHeight: 1.5,
-  },
-  ruleFooter: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: '4px',
-  },
-  ruleAmount: {
-    fontSize: '14px',
-    fontWeight: 700,
-    color: '#f5a623',
-  },
-  ruleCondition: {
-    fontSize: '12px',
-    color: 'rgba(253,246,227,0.4)',
-    fontStyle: 'italic',
-  },
-  emptyState: {
-    padding: '32px',
-    textAlign: 'center',
-    color: 'rgba(253,246,227,0.4)',
-    background: 'rgba(255,255,255,0.03)',
-    borderRadius: '10px',
-    border: '1px dashed rgba(245,166,35,0.15)',
-    fontSize: '14px',
-  },
-  tableWrapper: {
-    overflowX: 'auto',
-    borderRadius: '10px',
-    border: '1px solid rgba(245,166,35,0.15)',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: '14px',
-  },
-  th: {
-    padding: '12px 16px',
-    textAlign: 'left',
-    fontSize: '12px',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    color: 'rgba(253,246,227,0.5)',
-    background: 'rgba(245,166,35,0.06)',
-    borderBottom: '1px solid rgba(245,166,35,0.15)',
-    whiteSpace: 'nowrap',
-  },
-  td: {
-    padding: '12px 16px',
-    color: '#fdf6e3',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    verticalAlign: 'middle',
-  },
-  rowEven: { background: 'rgba(255,255,255,0.02)' },
-  rowOdd: { background: 'transparent' },
-  code: {
-    fontFamily: 'monospace',
-    fontSize: '12px',
-    background: 'rgba(255,255,255,0.07)',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    color: '#fdf6e3',
-  },
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const pageHeader: React.CSSProperties = { marginBottom: '28px' };
+const h1: React.CSSProperties = { margin: 0, fontSize: '28px', fontWeight: 700, color: '#fdf6e3', letterSpacing: '-0.02em' };
+const subtitle: React.CSSProperties = { margin: '6px 0 0', fontSize: '14px', color: 'rgba(253,246,227,0.5)' };
+const section: React.CSSProperties = { marginBottom: '32px' };
+const h2: React.CSSProperties = { margin: '0 0 14px', fontSize: '17px', fontWeight: 600, color: '#fdf6e3' };
+
+const rewardBanner: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: '20px',
+  background: 'linear-gradient(135deg, rgba(76,175,80,0.12), rgba(212,160,23,0.08))',
+  border: '1px solid rgba(76,175,80,0.25)',
+  borderRadius: '14px',
+  padding: '24px 28px',
+  marginBottom: '24px',
 };
+
+const bannerLabel: React.CSSProperties = {
+  fontSize: '12px',
+  color: 'rgba(253,246,227,0.5)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  marginBottom: '4px',
+};
+
+const bannerAmount: React.CSSProperties = {
+  fontSize: '36px',
+  fontWeight: 800,
+  color: '#4caf50',
+  letterSpacing: '-0.02em',
+};
+
+const bannerSub: React.CSSProperties = {
+  fontSize: '13px',
+  color: 'rgba(253,246,227,0.45)',
+  marginTop: '4px',
+};
+
+const claimBtn: React.CSSProperties = {
+  padding: '11px 22px',
+  background: 'linear-gradient(135deg, #4caf50, #2e7d32)',
+  border: 'none',
+  borderRadius: '8px',
+  color: '#fff',
+  fontWeight: 700,
+  fontSize: '14px',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+};
+
+const emptyBox: React.CSSProperties = {
+  padding: '32px',
+  textAlign: 'center',
+  color: 'rgba(253,246,227,0.4)',
+  background: 'rgba(255,255,255,0.03)',
+  borderRadius: '10px',
+  border: '1px dashed rgba(42,31,92,0.8)',
+  fontSize: '14px',
+};
+
+const tableWrap: React.CSSProperties = {
+  overflowX: 'auto',
+  borderRadius: '10px',
+  border: '1px solid rgba(42,31,92,0.8)',
+};
+
+const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: '14px' };
+
+const th: React.CSSProperties = {
+  padding: '11px 16px',
+  textAlign: 'left',
+  fontSize: '11px',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: 'rgba(253,246,227,0.45)',
+  background: 'rgba(42,31,92,0.35)',
+  borderBottom: '1px solid rgba(42,31,92,0.6)',
+  whiteSpace: 'nowrap',
+};
+
+const td: React.CSSProperties = {
+  padding: '13px 16px',
+  color: '#fdf6e3',
+  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  verticalAlign: 'middle',
+};
+
+const rowEven: React.CSSProperties = { background: 'rgba(255,255,255,0.015)' };

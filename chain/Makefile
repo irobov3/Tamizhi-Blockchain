@@ -16,7 +16,7 @@ MIN_GAS_PRICES := 0.001utmz
 
 BUILDDIR       := build
 
-GO             ?= $(shell command -v go 2>/dev/null || echo /Users/guverad/go-sdk/go/bin/go)
+GO             ?= $(shell command -v go 2>/dev/null || echo go)
 GOFLAGS        ?=
 # Detect OS — macOS can't statically link wasmvm, so we drop static_wasm tag there
 UNAME_S        := $(shell uname -s)

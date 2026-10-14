@@ -11,7 +11,7 @@
 //     `deserializeWithEncryptionKey()` (PBKDF2 + AES-256 GCM) so we never
 //     keep plaintext mnemonics on disk.
 
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
+import { DirectSecp256k1HdWallet, type KdfConfiguration } from "@cosmjs/proto-signing";
 
 const STORE_FILE = "tamizhi-wallets.json";
 const STORE_KEY = "wallets";
@@ -107,8 +107,15 @@ export async function createWallet(opts: {
     prefix,
   });
   const [account] = await wallet.getAccounts();
+  // We derive the key ourselves via PBKDF2; pass a placeholder kdfConfiguration
+  // so CosmJS's serialization format is satisfied (key derivation already done above).
+  const kdfConfig: KdfConfiguration = {
+    algorithm: "pbkdf2",
+    params: { outputLength: 32, opsLimit: 600_000 },
+  };
   const encrypted = await wallet.serializeWithEncryptionKey(
-    await deriveKey(opts.password)
+    await deriveKey(opts.password),
+    kdfConfig
   );
   const meta: StoredWalletMeta = {
     id: `w_${Date.now()}_${Math.floor(Math.random() * 1e6)}`,

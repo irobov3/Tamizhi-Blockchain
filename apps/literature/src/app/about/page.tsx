@@ -1,274 +1,275 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
+import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'About | தமிழி Literary Browser',
-  description: 'Learn how Tamizhi preserves Tamil literary heritage on the blockchain.',
-};
+  title: 'About | தமிழி Literature',
+  description: 'Learn how Tamizhi preserves Tamil literary heritage permanently on the blockchain.',
+}
 
-const SECTION: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #e8e0d0',
-  borderRadius: '14px',
-  padding: '32px',
-  marginBottom: '28px',
-};
-
-const H2: React.CSSProperties = {
-  fontSize: '20px',
-  fontWeight: 700,
-  color: '#2d1b00',
-  marginBottom: '16px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-};
-
-const P: React.CSSProperties = {
-  fontSize: '15px',
-  color: '#4a3520',
-  lineHeight: 1.8,
-  marginBottom: '12px',
-};
-
-function Step({ n, title, body }: { n: number; title: string; body: string }) {
+function Section({ children, accent }: { children: React.ReactNode; accent?: string }) {
   return (
-    <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-      <div
-        style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '50%',
-          background: '#c0392b',
-          color: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: '15px',
-          flexShrink: 0,
-          marginTop: '2px',
-        }}
-        aria-hidden="true"
-      >
+    <div style={{
+      background: '#1a1040',
+      border: '1px solid #2a1f5c',
+      borderLeft: accent ? `4px solid ${accent}` : '1px solid #2a1f5c',
+      borderRadius: '14px',
+      padding: '32px',
+      marginBottom: '24px',
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function Step({ n, title, body, color }: { n: number; title: string; body: string; color: string }) {
+  return (
+    <div style={{ display: 'flex', gap: '18px', marginBottom: '24px', alignItems: 'flex-start' }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        background: `${color}15`,
+        border: `2px solid ${color}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 700,
+        fontSize: '16px',
+        color,
+        flexShrink: 0,
+      }}>
         {n}
       </div>
       <div>
-        <div style={{ fontWeight: 600, color: '#2d1b00', marginBottom: '4px', fontSize: '15px' }}>
+        <div style={{ fontWeight: 700, color: '#fdf6e3', marginBottom: '6px', fontSize: '16px' }}>
           {title}
         </div>
-        <div style={{ fontSize: '14px', color: '#6b5a3e', lineHeight: 1.7 }}>{body}</div>
+        <div style={{ fontSize: '14px', color: '#8a8aa0', lineHeight: 1.8 }}>{body}</div>
       </div>
     </div>
-  );
+  )
+}
+
+function TechRow({ label, value }: { label: string; value: string }) {
+  return (
+    <tr style={{ borderBottom: '1px solid #2a1f5c' }}>
+      <td style={{
+        padding: '12px 0',
+        fontSize: '13px',
+        fontWeight: 600,
+        color: '#fdf6e3',
+        width: '40%',
+        verticalAlign: 'top',
+      }}>
+        {label}
+      </td>
+      <td style={{ padding: '12px 0' }}>
+        <code style={{ fontSize: '13px', color: '#00d4ff', fontFamily: 'monospace' }}>{value}</code>
+      </td>
+    </tr>
+  )
 }
 
 export default function AboutPage() {
   return (
-    <div style={{ maxWidth: '760px', margin: '0 auto', padding: '48px 24px 80px' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '56px 24px 80px' }}>
+
       {/* Hero */}
-      <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-        <div
-          style={{
-            fontFamily: 'Noto Sans Tamil, serif',
-            fontSize: '48px',
-            color: '#c0392b',
-            marginBottom: '12px',
-            lineHeight: 1,
-          }}
-          aria-hidden="true"
-        >
+      <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+        <div style={{
+          fontFamily: 'Noto Sans Tamil, serif',
+          fontSize: '64px',
+          color: '#d4a017',
+          lineHeight: 1,
+          marginBottom: '16px',
+          textShadow: '0 0 40px rgba(212,160,23,0.3)',
+        }}>
           தமிழி
         </div>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#2d1b00', marginBottom: '12px' }}>
-          About the Tamizhi Literary Browser
+        <h1 style={{
+          fontSize: 'clamp(22px, 3.5vw, 32px)',
+          fontWeight: 700,
+          color: '#fdf6e3',
+          marginBottom: '14px',
+          letterSpacing: '-0.01em',
+        }}>
+          About the Tamizhi Literature dApp
         </h1>
-        <p style={{ fontSize: '16px', color: '#7a6545', maxWidth: '520px', margin: '0 auto' }}>
-          Preserving Tamil literary heritage through blockchain technology — immutably,
-          openly, and forever.
+        <p style={{
+          fontSize: '16px',
+          color: '#8a8aa0',
+          maxWidth: '540px',
+          margin: '0 auto',
+          lineHeight: 1.8,
+        }}>
+          Preserving thousands of years of Tamil literary heritage through
+          blockchain technology — immutably, openly, and forever.
         </p>
       </div>
 
-      {/* What is Tamizhi */}
-      <div style={SECTION}>
-        <h2 style={H2}>
-          <span aria-hidden="true">🔗</span>
-          What is the Tamizhi Blockchain?
+      {/* Mission */}
+      <Section accent="#d4a017">
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#d4a017', marginBottom: '16px' }}>
+          Our Mission
         </h2>
-        <p style={P}>
-          Tamizhi is a purpose-built Layer-1 blockchain designed to preserve and celebrate
-          Tamil culture. Built on the Cosmos SDK, it provides a decentralised, censorship-resistant
-          ledger for Tamil literary works, NFT ownership records, and cultural metadata.
+        <p style={{ fontSize: '15px', color: '#8a8aa0', lineHeight: 1.9, marginBottom: '14px' }}>
+          Tamil is one of the world's oldest living languages, with a literary tradition spanning
+          over 2,000 years. Works like Thirukkural, Silappatikaram, and Tolkappiyam are among
+          humanity's greatest cultural treasures.
         </p>
-        <p style={P}>
-          Unlike centralised databases or archives that can be taken offline, edited, or lost,
-          Tamizhi stores a cryptographic fingerprint of every registered work directly on-chain.
-          The data is replicated across a network of validators around the world, ensuring
-          permanent availability.
+        <p style={{ fontSize: '15px', color: '#8a8aa0', lineHeight: 1.9, marginBottom: '14px' }}>
+          Tamizhi exists to ensure these works are never lost, censored, or forgotten. By
+          recording cryptographic proofs of Tamil literature on a decentralised blockchain,
+          we create a permanent, tamper-proof record that no single entity can delete.
         </p>
-        <p style={P}>
-          The chain&apos;s native token <strong>TMZH</strong> (micro-denom: utmzh) is used
-          for transaction fees and governance, allowing the Tamil community worldwide to
-          participate in decisions about the network.
+        <p style={{ fontSize: '15px', color: '#8a8aa0', lineHeight: 1.9 }}>
+          Built on the Cosmos SDK, Tamizhi is a purpose-built Layer-1 chain governed by the
+          global Tamil community through its native token <strong style={{ color: '#d4a017' }}>TMZ</strong>.
         </p>
-      </div>
+      </Section>
 
-      {/* How works are stored */}
-      <div style={SECTION}>
-        <h2 style={H2}>
-          <span aria-hidden="true">📦</span>
-          How Literary Works Are Stored
-        </h2>
-        <p style={{ ...P, marginBottom: '24px' }}>
-          Tamizhi uses a layered storage architecture to balance cost, permanence, and
-          verifiability:
-        </p>
-        <Step
-          n={1}
-          title="Content Hash on Chain"
-          body="A SHA-256 hash of the work's text is computed and submitted to the Tamizhi blockchain via a MsgSubmitWork transaction. This hash is the canonical identifier — any tampering with the text will change the hash, making forgery detectable."
-        />
-        <Step
-          n={2}
-          title="Full Text on Arweave"
-          body="The full text is uploaded to Arweave, a permanent decentralised storage network. Arweave's endowment model guarantees storage for hundreds of years. The resulting Arweave transaction ID is stored alongside the hash on-chain."
-        />
-        <Step
-          n={3}
-          title="Indexed by the Explorer"
-          body="The Tamizhi explorer indexes all on-chain works and their metadata (author, type, era, language) into a queryable database, enabling fast search and filtering without reading every block."
-        />
-        <Step
-          n={4}
-          title="Verification"
-          body="Once a work is included in a confirmed block, it receives a verified status with the block height and transaction hash. Anyone can independently verify the content hash against the stored Arweave text."
-        />
-      </div>
-
-      {/* NFT model */}
-      <div style={SECTION}>
-        <h2 style={H2}>
-          <span aria-hidden="true">🎖️</span>
-          NFT Ownership Model
-        </h2>
-        <p style={P}>
-          Every literary work registered on Tamizhi can have multiple NFT editions minted
-          against it. Owning an NFT does <em>not</em> grant copyright over the work — Tamil
-          literature is a shared cultural heritage — but it does represent a cryptographically
-          verifiable act of patronage and stewardship.
-        </p>
-        <p style={P}>
-          NFTs are minted via <code style={{ fontFamily: 'monospace', fontSize: '13px', background: '#f5f0e8', padding: '1px 6px', borderRadius: '4px' }}>MsgMintNFT</code>,
-          referencing the work&apos;s ID on-chain. Each token has a unique token ID and is
-          permanently linked to the content hash of the work. Ownership is transferable and
-          recorded on Tamizhi&apos;s NFT module.
-        </p>
-        <p style={P}>
-          Revenue from NFT minting (above the base fee) can be directed to a community
-          treasury governed by TMZH holders, funding further preservation efforts.
-        </p>
-      </div>
-
-      {/* How to contribute */}
-      <div style={SECTION}>
-        <h2 style={H2}>
-          <span aria-hidden="true">✍️</span>
-          How to Contribute a Work
+      {/* How it works */}
+      <Section accent="#a855f7">
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fdf6e3', marginBottom: '24px' }}>
+          How It Works
         </h2>
         <Step
           n={1}
-          title="Prepare the text"
-          body="Obtain or transcribe the work you wish to preserve. Ensure the text is in Unicode Tamil (UTF-8) and faithful to a reliable source."
+          title="Submit"
+          color="#d4a017"
+          body="A contributor prepares a Tamil literary work, computes its SHA-256 hash, and uploads the full text to Arweave for permanent decentralised storage. They then submit the metadata and content hash via a MsgSubmitWork transaction signed with their Keplr wallet."
         />
         <Step
           n={2}
-          title="Compute the SHA-256 hash"
-          body='Run: sha256sum yourwork.txt on Linux/macOS, or use an online tool. The output is 64 hexadecimal characters — this is your content hash.'
+          title="Verify"
+          color="#a855f7"
+          body="Once the transaction is included in a block, the work receives on-chain verification status. Validators confirm the transaction, and the content hash becomes a permanent, cryptographically verifiable record of the exact text submitted."
         />
         <Step
           n={3}
-          title="Upload to Arweave (recommended)"
-          body="Use arweave.app or the Arweave CLI to upload the text file and obtain a transaction ID. This ensures the full text is permanently accessible."
+          title="Preserve"
+          color="#22c55e"
+          body="The work is indexed by the Tamizhi explorer and becomes searchable and accessible to anyone. Community members can mint NFT editions as acts of patronage, funding further preservation. The content remains accessible via Arweave for hundreds of years."
         />
-        <Step
-          n={4}
-          title="Submit via this browser"
-          body="Go to the Submit page, fill in the metadata form, paste your content hash and Arweave ID, then sign the MsgSubmitWork transaction with your Keplr wallet."
-        />
-        <Step
-          n={5}
-          title="Share and mint"
-          body="Once confirmed, share the work's URL from this browser. Community members can mint NFT editions to show their support and contribute to preservation funding."
-        />
+      </Section>
 
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <Link
-            href="/submit"
-            style={{
-              display: 'inline-block',
-              background: '#c0392b',
-              color: '#fff',
-              padding: '13px 32px',
-              borderRadius: '10px',
-              fontWeight: 700,
-              textDecoration: 'none',
-              fontSize: '15px',
-            }}
-          >
-            Submit a Work →
-          </Link>
-        </div>
+      {/* Statistics */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+        gap: '16px',
+        marginBottom: '24px',
+      }}>
+        {[
+          { value: '2,500+', label: 'Years of History', color: '#d4a017' },
+          { value: '1,330', label: 'Thirukkural Couplets', color: '#a855f7' },
+          { value: '400+', label: 'Sangam Poems', color: '#00d4ff' },
+          { value: '∞', label: 'Years Preserved', color: '#22c55e' },
+        ].map((s) => (
+          <div key={s.label} style={{
+            background: '#1a1040',
+            border: '1px solid #2a1f5c',
+            borderRadius: '12px',
+            padding: '20px',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: s.color, lineHeight: 1 }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize: '12px', color: '#8a8aa0', marginTop: '8px', lineHeight: 1.4 }}>
+              {s.label}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Technical details */}
-      <div
-        style={{
-          background: '#f5f0e8',
-          border: '1px solid #e8e0d0',
-          borderRadius: '12px',
-          padding: '24px',
-        }}
-      >
-        <h2 style={{ ...H2, marginBottom: '12px' }}>
-          <span aria-hidden="true">⚙️</span>
-          Technical Details
+      {/* Technology Stack */}
+      <Section accent="#00d4ff">
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fdf6e3', marginBottom: '20px' }}>
+          Technology Stack
         </h2>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
-            {[
-              ['Chain SDK', 'Cosmos SDK v0.50'],
-              ['Consensus', 'CometBFT (Tendermint v2)'],
-              ['Native denom', 'TMZH / utmzh (1 TMZH = 1,000,000 utmzh)'],
-              ['REST API', 'http://localhost:1317'],
-              ['RPC', 'http://localhost:26657'],
-              ['Explorer API', 'http://localhost:3001'],
-              ['Wallet', 'Keplr (Cosmos-compatible)'],
-              ['Signing', '@cosmjs/stargate + @cosmjs/proto-signing'],
-              ['Permanent storage', 'Arweave'],
-            ].map(([k, v]) => (
-              <tr
-                key={k}
-                style={{ borderBottom: '1px solid #e8e0d0' }}
-              >
-                <td
-                  style={{
-                    padding: '10px 0',
-                    fontWeight: 600,
-                    color: '#4a3520',
-                    width: '40%',
-                    verticalAlign: 'top',
-                  }}
-                >
-                  {k}
-                </td>
-                <td style={{ padding: '10px 0', color: '#6b5a3e' }}>
-                  <code style={{ fontFamily: 'monospace', fontSize: '13px' }}>{v}</code>
-                </td>
-              </tr>
-            ))}
+            <TechRow label="Blockchain SDK" value="Cosmos SDK v0.50" />
+            <TechRow label="Consensus" value="CometBFT (Tendermint v2)" />
+            <TechRow label="Smart Contracts" value="CosmWasm" />
+            <TechRow label="Native Token" value="TMZ / utmz (1 TMZ = 1,000,000 utmz)" />
+            <TechRow label="Wallet" value="Keplr (Cosmos-compatible)" />
+            <TechRow label="Signing Library" value="@cosmjs/stargate + @cosmjs/proto-signing" />
+            <TechRow label="Permanent Storage" value="Arweave" />
+            <TechRow label="Chain REST API" value="https://api.tamizhi.ai" />
+            <TechRow label="Literature Module" value="GET /tamizhi/literature/v1/works" />
           </tbody>
         </table>
+      </Section>
+
+      {/* Community */}
+      <Section accent="#22c55e">
+        <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fdf6e3', marginBottom: '16px' }}>
+          Community & Governance
+        </h2>
+        <p style={{ fontSize: '15px', color: '#8a8aa0', lineHeight: 1.9, marginBottom: '16px' }}>
+          Tamizhi is a community-owned protocol. TMZ holders participate in governance
+          decisions — from listing policies to treasury allocation for preservation efforts.
+          There is no corporate entity behind Tamizhi; it exists to serve the Tamil community worldwide.
+        </p>
+        <p style={{ fontSize: '15px', color: '#8a8aa0', lineHeight: 1.9, marginBottom: '28px' }}>
+          Anyone can submit a work, run a validator node, or contribute to the open-source
+          codebase. NFT revenue above base fees flows to a community treasury, funding
+          academic research, digitisation projects, and educational initiatives.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <Link href="/submit" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'linear-gradient(135deg, #d4a017, #b8860b)',
+            color: '#0a0618',
+            padding: '12px 28px',
+            borderRadius: '9px',
+            fontWeight: 700,
+            fontSize: '15px',
+          }}>
+            Submit a Work →
+          </Link>
+          <Link href="/" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(212,160,23,0.1)',
+            border: '1px solid rgba(212,160,23,0.3)',
+            color: '#d4a017',
+            padding: '12px 28px',
+            borderRadius: '9px',
+            fontWeight: 600,
+            fontSize: '15px',
+          }}>
+            Browse Works
+          </Link>
+        </div>
+      </Section>
+
+      {/* Tamil heritage quote */}
+      <div style={{
+        textAlign: 'center',
+        padding: '40px 24px',
+        borderTop: '1px solid #2a1f5c',
+      }}>
+        <p style={{
+          fontFamily: 'Noto Sans Tamil, serif',
+          fontSize: '22px',
+          color: '#d4a017',
+          fontStyle: 'italic',
+          lineHeight: 2,
+          marginBottom: '12px',
+        }}>
+          யாதும் ஊரே யாவரும் கேளிர்
+        </p>
+        <p style={{ fontSize: '14px', color: '#8a8aa0', fontStyle: 'italic' }}>
+          &ldquo;Every place is my hometown; every person is my kin.&rdquo;
+          <span style={{ marginLeft: '8px', opacity: 0.6 }}>— Purananuru, Sangam literature</span>
+        </p>
       </div>
     </div>
-  );
+  )
 }

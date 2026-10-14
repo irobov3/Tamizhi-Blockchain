@@ -1,56 +1,74 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Layers,
   ArrowRightLeft,
   Activity,
   Users,
-  Database,
+  BookOpen,
   Clock,
   CheckCircle,
   XCircle,
   ChevronRight,
-  Code2,
-  Hash,
   Blocks,
-  FileText,
+  RefreshCw,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/Badge';
 import { ChainOfflineBanner } from '@/components/explorer/ChainOfflineBanner';
 import { StatCardSkeleton, TableSkeleton } from '@/components/explorer/ExplorerSkeletons';
-import { Spinner } from '@/components/ui/Spinner';
-import { clsx } from 'clsx';
-import { formatDistanceToNow } from 'date-fns';
 import {
-  getChainStatus,
-  getLatestBlock,
-  getRecentBlocks,
-  getLatestTransactions,
+  getStats,
+  getBlocks,
+  getTransactionsList,
   ExplorerOfflineError,
+  timeAgo,
+  truncateHash,
+  type ChainStats,
   type Block,
   type Tx,
-  type ChainStatus,
 } from '@/lib/explorer-api';
+
+// ─── Mock data for offline display ────────────────────────────────────────────
+
+const MOCK_STATS: ChainStats = {
+  total_blocks: 142857,
+  total_transactions: 31415,
+  total_nodes: 12,
+  total_literature_works: 108,
+  latest_block: { height: 142857, hash: 'A1B2C3D4E5F6...', time: new Date().toISOString() },
+};
+
+const MOCK_BLOCKS: Block[] = Array.from({ length: 10 }, (_, i) => ({
+  height: 142857 - i,
+  hash: `${(0xA1B2C3D4E5F6 - i * 0x1000).toString(16).toUpperCase().padStart(12, '0')}...`,
+  time: new Date(Date.now() - i * 6000).toISOString(),
+  proposer: `tamizhi1val${(i + 1).toString().padStart(3, '0')}...`,
+  tx_count: Math.floor(Math.random() * 5),
+}));
+
+const MOCK_TXS: Tx[] = Array.from({ length: 10 }, (_, i) => ({
+  hash: `TX${(0xDEADBEEF + i).toString(16).toUpperCase()}...`,
+  height: 142857 - i,
+  index: i,
+  sender: `tamizhi1addr${(i + 1).toString().padStart(3, '0')}...`,
+  msg_types: ['MsgSend', 'MsgDelegate', 'MsgVote'][i % 3] ? ['MsgSend'] : ['MsgDelegate'],
+  code: i % 7 === 0 ? 1 : 0,
+  gas_used: 50000 + i * 1000,
+  gas_wanted: 80000,
+  fee_amount: '500',
+  fee_denom: 'utmz',
+  memo: '',
+  time: new Date(Date.now() - i * 8000).toISOString(),
+}));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function truncate(s: string, n = 12) {
   if (!s) return '—';
   return s.length <= n ? s : `${s.slice(0, n)}...`;
-}
-
-function msgType(tx: Tx): string {
-  const msgs = tx.tx?.body?.messages ?? [];
-  if (msgs.length === 0) return 'unknown';
-  const t = msgs[0]['@type'] ?? '';
-  const parts = t.split('.');
-  return parts[parts.length - 1]?.replace('Msg', '') ?? t;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -71,190 +89,38 @@ function StatCard({
   bg: string;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-4 rounded-xl bg-background-card border border-background-border"
-    >
-      <div className={clsx('inline-flex p-2 rounded-lg mb-3', bg)}>
-        <Icon className={clsx('w-4 h-4', color)} />
+    <div className="p-4 rounded-xl bg-[#1a1040] border border-[#2a1f5c]">
+      <div className={`inline-flex p-2 rounded-lg mb-3 ${bg}`}>
+        <Icon className={`w-4 h-4 ${color}`} />
       </div>
       <div className="text-xl font-bold text-white font-mono">{value}</div>
-      <div className="text-text-secondary text-xs mt-0.5">{label}</div>
-      <div className="tamil-text text-text-muted text-xs">{labelTamil}</div>
-    </motion.div>
-  );
-}
-
-function BlocksTable({ blocks, loading }: { blocks: Block[]; loading: boolean }) {
-  return (
-    <div className="rounded-xl bg-background-card border border-background-border overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-background-border">
-        <div className="flex items-center gap-2">
-          <Blocks className="w-4 h-4 text-primary-400" />
-          <span className="text-sm font-semibold text-white">Latest Blocks</span>
-          <span className="tamil-text text-primary-400 text-xs">சமீபத்திய தொகுதிகள்</span>
-        </div>
-        <Link
-          href="/explorer/blocks"
-          className="text-xs text-primary-400 hover:text-primary-300 flex items-center gap-1 transition-colors"
-        >
-          View all <ChevronRight className="w-3 h-3" />
-        </Link>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-background-border/60">
-              <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5">Height</th>
-              <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5 hidden sm:table-cell">Hash</th>
-              <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5 hidden md:table-cell">Proposer</th>
-              <th className="text-center text-xs text-text-muted font-medium px-4 py-2.5">Txs</th>
-              <th className="text-right text-xs text-text-muted font-medium px-4 py-2.5">Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <TableSkeleton rows={10} cols={5} />
-            ) : blocks.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-text-muted text-sm">
-                  No blocks found
-                </td>
-              </tr>
-            ) : (
-              blocks.map((block, i) => {
-                const h = Number(block.block.header.height);
-                const hash = block.block_id.hash;
-                const proposer = block.block.header.proposer_address;
-                const txCount = block.block.data.txs?.length ?? 0;
-                const time = block.block.header.time;
-                return (
-                  <motion.tr
-                    key={h}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="border-b border-background-border/40 hover:bg-surface-hover transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/explorer/blocks/${h}`}
-                        className="text-primary-400 hover:text-primary-300 font-mono text-sm font-semibold transition-colors"
-                      >
-                        #{h.toLocaleString()}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className="text-text-secondary font-mono text-xs">
-                        {truncate(hash, 12)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-text-secondary font-mono text-xs">
-                        {truncate(proposer, 14)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Badge variant={txCount > 0 ? 'primary' : 'default'} size="xs">
-                        {txCount}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className="text-text-muted text-xs flex items-center gap-1 justify-end">
-                        <Clock className="w-3 h-3" />
-                        {formatDistanceToNow(new Date(time), { addSuffix: true })}
-                      </span>
-                    </td>
-                  </motion.tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <div className="text-gray-400 text-xs mt-0.5">{label}</div>
+      <div className="tamil-text text-gray-500 text-xs">{labelTamil}</div>
     </div>
   );
 }
 
-function TxsTable({ txs, loading }: { txs: Tx[]; loading: boolean }) {
+function LatestBlockCard({ block }: { block: ChainStats['latest_block'] }) {
+  if (!block) return null;
   return (
-    <div className="rounded-xl bg-background-card border border-background-border overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-background-border">
-        <div className="flex items-center gap-2">
-          <ArrowRightLeft className="w-4 h-4 text-primary-400" />
-          <span className="text-sm font-semibold text-white">Latest Transactions</span>
-          <span className="tamil-text text-primary-400 text-xs">சமீபத்திய பரிவர்த்தனைகள்</span>
+    <div className="p-5 rounded-xl bg-gradient-to-r from-[#1a1040] to-[#0e1a40] border border-cyan-400/30 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex-1 min-w-0">
+        <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wider mb-1">
+          Latest Block
+        </div>
+        <Link
+          href={`/explorer/blocks/${block.height}`}
+          className="text-2xl font-bold text-white font-mono hover:text-cyan-400 transition-colors"
+        >
+          #{block.height.toLocaleString()}
+        </Link>
+        <div className="font-mono text-xs text-gray-400 mt-1 truncate">
+          {truncate(block.hash, 24)}
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-background-border/60">
-              <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5">Tx Hash</th>
-              <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5 hidden sm:table-cell">Type</th>
-              <th className="text-left text-xs text-text-muted font-medium px-4 py-2.5 hidden md:table-cell">Height</th>
-              <th className="text-center text-xs text-text-muted font-medium px-4 py-2.5">Status</th>
-              <th className="text-right text-xs text-text-muted font-medium px-4 py-2.5">Age</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <TableSkeleton rows={10} cols={5} />
-            ) : txs.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-text-muted text-sm">
-                  No transactions found
-                </td>
-              </tr>
-            ) : (
-              txs.slice(0, 10).map((tx, i) => (
-                <motion.tr
-                  key={tx.hash}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.02 }}
-                  className="border-b border-background-border/40 hover:bg-surface-hover transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/explorer/txs/${tx.hash}`}
-                      className="text-primary-400 hover:text-primary-300 font-mono text-xs transition-colors"
-                    >
-                      {truncate(tx.hash, 16)}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <Badge variant="secondary" size="xs">
-                      {msgType(tx)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <Link
-                      href={`/explorer/blocks/${tx.height}`}
-                      className="text-text-secondary font-mono text-xs hover:text-primary-400 transition-colors"
-                    >
-                      #{Number(tx.height).toLocaleString()}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {tx.tx_result.code === 0 ? (
-                      <CheckCircle className="w-4 h-4 text-green-400 mx-auto" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-red-400 mx-auto" />
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="text-text-muted text-xs">
-                      {/* Height-based age approximation; use block time if available */}
-                      Block #{Number(tx.height).toLocaleString()}
-                    </span>
-                  </td>
-                </motion.tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="flex items-center gap-2 text-gray-400 text-sm">
+        <Clock className="w-4 h-4 text-cyan-400" />
+        {timeAgo(block.time)}
       </div>
     </div>
   );
@@ -266,109 +132,103 @@ export default function ExplorerPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ChainStats | null>(null);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [txs, setTxs] = useState<Tx[]>([]);
 
-  // Chain status — refetch every 10 s
-  const statusQuery = useQuery<ChainStatus, Error>({
-    queryKey: ['explorer', 'chainStatus'],
-    queryFn: getChainStatus,
-    refetchInterval: 10_000,
-    retry: false,
-  });
+  const fetchAll = useCallback(async () => {
+    try {
+      const [s, b, t] = await Promise.all([
+        getStats(),
+        getBlocks(10, 0),
+        getTransactionsList(10, 0),
+      ]);
+      setStats(s);
+      setBlocks(b.blocks);
+      setTxs(t.txs);
+      setIsOffline(false);
+    } catch (err) {
+      if (err instanceof ExplorerOfflineError) {
+        setIsOffline(true);
+        // Show mock data when offline
+        setStats(MOCK_STATS);
+        setBlocks(MOCK_BLOCKS);
+        setTxs(MOCK_TXS);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Latest blocks
-  const blocksQuery = useQuery<Block[], Error>({
-    queryKey: ['explorer', 'recentBlocks'],
-    queryFn: async () => {
-      const latest = await getLatestBlock();
-      const h = Number(latest.block.header.height);
-      return getRecentBlocks(h, 10);
-    },
-    refetchInterval: 10_000,
-    retry: false,
-  });
+  useEffect(() => {
+    fetchAll();
+    const id = setInterval(fetchAll, 6000);
+    return () => clearInterval(id);
+  }, [fetchAll]);
 
-  // Latest txs
-  const txsQuery = useQuery<Tx[], Error>({
-    queryKey: ['explorer', 'latestTxs'],
-    queryFn: () => getLatestTransactions(10),
-    refetchInterval: 10_000,
-    retry: false,
-  });
-
-  const isOffline =
-    statusQuery.error instanceof ExplorerOfflineError ||
-    blocksQuery.error instanceof ExplorerOfflineError;
-
-  const status = statusQuery.data;
-  const blocks = blocksQuery.data ?? [];
-  const txs = txsQuery.data ?? [];
-
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
     setSearching(true);
-    // Route based on query shape
     if (/^\d+$/.test(q)) {
       router.push(`/explorer/blocks/${q}`);
-    } else if (q.length >= 40 && !q.startsWith('tamizhi1')) {
+    } else if (q.length >= 40 && !q.toLowerCase().startsWith('tamizhi1')) {
       router.push(`/explorer/txs/${q.toUpperCase()}`);
-    } else if (q.startsWith('tamizhi1')) {
-      // address — future: account page
-      router.push(`/explorer/txs/${q}`);
+    } else if (q.toLowerCase().startsWith('tamizhi1')) {
+      router.push(`/explorer/address/${q}`);
     } else {
       router.push(`/explorer/blocks/${q}`);
     }
     setSearching(false);
   };
 
-  const quickLinks = [
-    { href: '/explorer/blocks', label: 'Blocks', labelTamil: 'தொகுதிகள்', icon: Blocks },
-    { href: '/explorer/validators', label: 'Validators', labelTamil: 'சரிபார்ப்பாளர்கள்', icon: Users },
-    { href: '/explorer/contracts', label: 'Contracts', labelTamil: 'ஒப்பந்தங்கள்', icon: Code2 },
-  ];
-
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Activity className="w-6 h-6 text-primary-400" />
-          Block Explorer
-        </h1>
-        <p className="tamil-text text-primary-400 text-sm mt-0.5">தொகுதி ஆய்வாளர்</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Activity className="w-6 h-6 text-cyan-400" />
+            Block Explorer
+          </h1>
+          <p className="tamil-text text-cyan-400 text-sm mt-0.5">தொகுதி ஆய்வாளர்</p>
+        </div>
+        <button
+          onClick={fetchAll}
+          className="p-2 rounded-xl text-gray-400 hover:text-cyan-400 hover:bg-[#1a1040] transition-colors"
+          title="Refresh"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* Offline banner */}
       {isOffline && (
-        <ChainOfflineBanner
-          onRetry={() => {
-            statusQuery.refetch();
-            blocksQuery.refetch();
-            txsQuery.refetch();
-          }}
-        />
+        <ChainOfflineBanner onRetry={fetchAll} />
       )}
 
       {/* Search */}
       <form onSubmit={handleSearch}>
         <div className="flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="text"
               placeholder="Search by block height, tx hash, or address…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-surface-DEFAULT border border-background-border text-text-primary placeholder-text-muted rounded-xl focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+              className="w-full pl-10 pr-4 py-3 bg-[#1a1040] border border-[#2a1f5c] text-white placeholder-gray-500 rounded-xl focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/30 transition-colors"
             />
           </div>
           <button
             type="submit"
             disabled={searching || !searchQuery.trim()}
-            className="flex items-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-400 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-medium"
+            className="flex items-center gap-2 px-5 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-gray-950 rounded-xl transition-colors font-semibold"
           >
-            {searching ? <Spinner size="sm" /> : <Search className="w-4 h-4" />}
+            <Search className="w-4 h-4" />
             <span className="hidden sm:inline">Search</span>
           </button>
         </div>
@@ -376,80 +236,221 @@ export default function ExplorerPage() {
 
       {/* Quick links */}
       <div className="flex flex-wrap gap-3">
-        {quickLinks.map(({ href, label, labelTamil, icon: Icon }) => (
+        {[
+          { href: '/explorer/blocks', label: 'Blocks', labelTamil: 'தொகுதிகள்', icon: Blocks },
+          { href: '/explorer/validators', label: 'Validators', labelTamil: 'சரிபார்ப்பாளர்கள்', icon: Users },
+          { href: '/literature', label: 'Literature', labelTamil: 'இலக்கியம்', icon: BookOpen },
+        ].map(({ href, label, labelTamil, icon: Icon }) => (
           <Link
             key={href}
             href={href}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-background-card border border-background-border hover:border-primary-500/30 hover:bg-surface-hover text-text-secondary hover:text-white transition-all text-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1a1040] border border-[#2a1f5c] hover:border-cyan-400/30 text-gray-400 hover:text-white transition-all text-sm"
           >
-            <Icon className="w-4 h-4 text-primary-400" />
+            <Icon className="w-4 h-4 text-cyan-400" />
             <span>{label}</span>
-            <span className="tamil-text text-primary-400 text-xs">{labelTamil}</span>
-            <ChevronRight className="w-3 h-3 text-text-muted" />
+            <span className="tamil-text text-cyan-400 text-xs">{labelTamil}</span>
+            <ChevronRight className="w-3 h-3 text-gray-500" />
           </Link>
         ))}
       </div>
 
-      {/* Chain stats */}
+      {/* Stats bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statusQuery.isLoading ? (
+        {loading ? (
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
             <StatCard
-              label="Block Height"
-              labelTamil="தொகுதி உயரம்"
-              value={status ? Number(status.latestHeight).toLocaleString() : '—'}
+              label="Total Blocks"
+              labelTamil="மொத்த தொகுதிகள்"
+              value={stats ? stats.total_blocks.toLocaleString() : '—'}
               icon={Layers}
               color="text-blue-400"
               bg="bg-blue-500/10"
             />
             <StatCard
-              label="Bonded Tokens"
-              labelTamil="பிணைக்கப்பட்டவை"
-              value={
-                status
-                  ? `${(Number(status.bondedTokens) / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 0 })} TMZ`
-                  : '—'
-              }
-              icon={Database}
+              label="Total Txs"
+              labelTamil="மொத்த பரிவர்த்தனைகள்"
+              value={stats ? stats.total_transactions.toLocaleString() : '—'}
+              icon={ArrowRightLeft}
               color="text-purple-400"
               bg="bg-purple-500/10"
             />
             <StatCard
-              label="Chain ID"
-              labelTamil="சங்கிலி ID"
-              value={status?.chainId ?? '—'}
-              icon={Hash}
-              color="text-yellow-400"
-              bg="bg-yellow-500/10"
-            />
-            <StatCard
-              label="Latest Block"
-              labelTamil="புதிய தொகுதி"
-              value={
-                status
-                  ? formatDistanceToNow(new Date(status.latestTime), { addSuffix: true })
-                  : '—'
-              }
-              icon={Clock}
+              label="Active Nodes"
+              labelTamil="செயலில் உள்ள முனைகள்"
+              value={stats ? stats.total_nodes.toLocaleString() : '—'}
+              icon={Users}
               color="text-green-400"
               bg="bg-green-500/10"
+            />
+            <StatCard
+              label="Literature Works"
+              labelTamil="இலக்கியப் படைப்புகள்"
+              value={stats ? stats.total_literature_works.toLocaleString() : '—'}
+              icon={BookOpen}
+              color="text-yellow-400"
+              bg="bg-yellow-500/10"
             />
           </>
         )}
       </div>
 
-      {/* Tables */}
+      {/* Latest block highlighted card */}
+      {stats?.latest_block && <LatestBlockCard block={stats.latest_block} />}
+
+      {/* Two-column tables */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <BlocksTable
-          blocks={blocks}
-          loading={blocksQuery.isLoading}
-        />
-        <TxsTable
-          txs={txs}
-          loading={txsQuery.isLoading}
-        />
+        {/* Latest Blocks */}
+        <div className="rounded-xl bg-[#1a1040] border border-[#2a1f5c] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a1f5c]">
+            <div className="flex items-center gap-2">
+              <Blocks className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-semibold text-white">Latest Blocks</span>
+              <span className="tamil-text text-cyan-400 text-xs">சமீபத்திய தொகுதிகள்</span>
+            </div>
+            <Link
+              href="/explorer/blocks"
+              className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+            >
+              View all <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#2a1f5c]/60">
+                  <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5">Height</th>
+                  <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5 hidden sm:table-cell">Hash</th>
+                  <th className="text-center text-xs text-gray-500 font-medium px-4 py-2.5">Txs</th>
+                  <th className="text-right text-xs text-gray-500 font-medium px-4 py-2.5">Age</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <TableSkeleton rows={10} cols={4} />
+                ) : blocks.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-gray-500 text-sm">
+                      No blocks found
+                    </td>
+                  </tr>
+                ) : (
+                  blocks.map((block) => (
+                    <tr
+                      key={block.height}
+                      className="border-b border-[#2a1f5c]/40 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/explorer/blocks/${block.height}`}
+                          className="text-cyan-400 hover:text-cyan-300 font-mono text-sm font-semibold transition-colors"
+                        >
+                          #{block.height.toLocaleString()}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <span className="text-gray-400 font-mono text-xs">
+                          {truncateHash(block.hash, 8)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5 rounded text-xs font-mono font-semibold ${
+                            block.tx_count > 0
+                              ? 'bg-cyan-500/20 text-cyan-400'
+                              : 'bg-gray-700/50 text-gray-500'
+                          }`}
+                        >
+                          {block.tx_count}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-gray-500 text-xs flex items-center gap-1 justify-end">
+                          <Clock className="w-3 h-3" />
+                          {timeAgo(block.time)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Latest Transactions */}
+        <div className="rounded-xl bg-[#1a1040] border border-[#2a1f5c] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a1f5c]">
+            <div className="flex items-center gap-2">
+              <ArrowRightLeft className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-semibold text-white">Latest Transactions</span>
+              <span className="tamil-text text-cyan-400 text-xs">சமீபத்திய பரிவர்த்தனைகள்</span>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#2a1f5c]/60">
+                  <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5">Tx Hash</th>
+                  <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5 hidden sm:table-cell">Type</th>
+                  <th className="text-left text-xs text-gray-500 font-medium px-4 py-2.5 hidden md:table-cell">From</th>
+                  <th className="text-center text-xs text-gray-500 font-medium px-4 py-2.5">Status</th>
+                  <th className="text-right text-xs text-gray-500 font-medium px-4 py-2.5">Age</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <TableSkeleton rows={10} cols={5} />
+                ) : txs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500 text-sm">
+                      No transactions found
+                    </td>
+                  </tr>
+                ) : (
+                  txs.map((tx) => (
+                    <tr
+                      key={tx.hash}
+                      className="border-b border-[#2a1f5c]/40 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/explorer/txs/${tx.hash}`}
+                          className="text-cyan-400 hover:text-cyan-300 font-mono text-xs transition-colors"
+                        >
+                          {truncateHash(tx.hash, 8)}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-300 font-mono">
+                          {(tx.msg_types[0] ?? 'unknown').replace('Msg', '')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        <span className="text-gray-400 font-mono text-xs">
+                          {truncate(tx.sender, 14)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {tx.code === 0 ? (
+                          <CheckCircle className="w-4 h-4 text-green-400 mx-auto" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-400 mx-auto" />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-gray-500 text-xs">
+                          {tx.time ? timeAgo(tx.time) : `Block #${tx.height}`}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );

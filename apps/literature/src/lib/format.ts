@@ -1,69 +1,65 @@
-import type { WorkType } from './types';
+import type { LiteratureWork } from './types'
 
-// ── Work type display helpers ──
-
-export function formatWorkType(type: WorkType | string): string {
-  switch (type) {
-    case 'poem':    return 'Poem';
-    case 'prose':   return 'Prose';
-    case 'epic':    return 'Epic';
-    case 'grammar': return 'Grammar';
-    default:        return 'Unknown';
+export function formatGenre(genre: LiteratureWork['genre']): string {
+  switch (genre) {
+    case 'poetry':     return 'Poetry'
+    case 'epic':       return 'Epic'
+    case 'grammar':    return 'Grammar'
+    case 'philosophy': return 'Philosophy'
+    case 'history':    return 'History'
+    case 'other':      return 'Other'
+    default:           return String(genre)
   }
 }
 
-export function workTypeInTamil(type: WorkType | string): string {
-  switch (type) {
-    case 'poem':    return 'கவிதை';
-    case 'prose':   return 'உரைநடை';
-    case 'epic':    return 'காவியம்';
-    case 'grammar': return 'இலக்கணம்';
-    default:        return '';
+export function genreInTamil(genre: LiteratureWork['genre']): string {
+  switch (genre) {
+    case 'poetry':     return 'கவிதை'
+    case 'epic':       return 'காவியம்'
+    case 'grammar':    return 'இலக்கணம்'
+    case 'philosophy': return 'தத்துவம்'
+    case 'history':    return 'வரலாறு'
+    case 'other':      return 'மற்றவை'
+    default:           return ''
   }
 }
 
-// ── Hash helpers ──
+export function genreColor(genre: LiteratureWork['genre']): string {
+  switch (genre) {
+    case 'poetry':     return '#a855f7'  // purple
+    case 'epic':       return '#00d4ff'  // cyan
+    case 'grammar':    return '#d4a017'  // gold
+    case 'philosophy': return '#ef4444'  // red
+    case 'history':    return '#22c55e'  // green
+    case 'other':      return '#8a8aa0'  // muted
+    default:           return '#8a8aa0'
+  }
+}
 
 export function truncateHash(hash: string, leading = 8, trailing = 8): string {
-  if (!hash) return '';
-  if (hash.length <= leading + trailing + 3) return hash;
-  return `${hash.slice(0, leading)}…${hash.slice(-trailing)}`;
+  if (!hash) return ''
+  if (hash.length <= leading + trailing + 3) return hash
+  return `${hash.slice(0, leading)}…${hash.slice(-trailing)}`
 }
 
 export function isValidContentHash(hash: string): boolean {
-  return /^[0-9a-fA-F]{64}$/.test(hash);
+  return /^[0-9a-fA-F]{64}$/.test(hash)
 }
-
-// ── Era / century formatting ──
-
-export function formatEra(century?: string, era?: string): string {
-  if (era && century) return `${century} (${era})`;
-  if (era) return era;
-  if (century) return century;
-  return 'Era unknown';
-}
-
-export function formatCentury(century: string): string {
-  if (!century) return '';
-  // Normalise "5" → "5th century", "BCE 3" → "3rd century BCE", etc.
-  const cleaned = century.trim();
-  const match = cleaned.match(/^(\d+)(?:st|nd|rd|th)?(?:\s*(BCE|CE|AD|BC))?$/i);
-  if (!match) return cleaned;
-  const n = parseInt(match[1], 10);
-  const suffix = ordinalSuffix(n);
-  const era = match[2] ? ` ${match[2].toUpperCase()}` : '';
-  return `${n}${suffix} century${era}`;
-}
-
-function ordinalSuffix(n: number): string {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] ?? s[v] ?? s[0];
-}
-
-// ── Misc ──
 
 export function formatNumber(n: number | undefined | null): string {
-  if (n == null) return '—';
-  return n.toLocaleString('en-IN');
+  if (n == null) return '—'
+  return n.toLocaleString('en-IN')
+}
+
+export function formatDate(dateStr?: string): string {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  } catch {
+    return dateStr
+  }
 }

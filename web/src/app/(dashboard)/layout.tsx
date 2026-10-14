@@ -76,12 +76,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 p-6 border-b border-background-border">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm tamil-text">த</span>
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <span className="text-white font-bold text-base tamil-text">த</span>
         </div>
         <div>
-          <span className="text-white font-bold text-base block leading-tight">Tamizhi</span>
-          <span className="tamil-text text-primary-400 text-xs">தமிழி</span>
+          <span className="text-white font-bold text-base block leading-tight tamil-text">தமிழி</span>
+          <span className="text-gray-400 text-xs">Tamizhi.Ai</span>
         </div>
       </div>
 

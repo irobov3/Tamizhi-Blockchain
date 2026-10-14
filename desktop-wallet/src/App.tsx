@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { HashRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { Sidebar } from "./components/Sidebar";
-import { Header } from "./components/Header";
 import { ToastHost } from "./components/Toast";
 import { Dashboard } from "./pages/Dashboard";
 import { Send } from "./pages/Send";
@@ -12,6 +11,20 @@ import { Literature } from "./pages/Literature";
 import { Rewards } from "./pages/Rewards";
 import { Settings } from "./pages/Settings";
 import { useWallet } from "./store/wallet";
+
+const C = {
+  bg: '#0e0824',
+  sidebar: '#0a0618',
+  card: '#1a1040',
+  border: '#2a1f5c',
+  gold: '#d4a017',
+  cyan: '#00d4ff',
+  text: '#fdf6e3',
+  muted: '#8a8aa0',
+  success: '#00c48c',
+  error: '#ff4d4d',
+  purple: '#7c3aed',
+}
 
 function DeepLinkBridge() {
   const navigate = useNavigate();
@@ -25,7 +38,6 @@ function DeepLinkBridge() {
         unlisten = await events.listen<{ urls: string[] }>("deep-link://new-url", (e) => {
           const url = e.payload.urls?.[0];
           if (!url) return;
-          // tamizhi://send?to=...&amount=...
           const u = new URL(url);
           if (u.hostname === "send" || u.pathname.startsWith("//send")) {
             const qs = u.searchParams.toString();
@@ -36,9 +48,7 @@ function DeepLinkBridge() {
         console.warn("deep-link listen failed", err);
       }
     })();
-    return () => {
-      unlisten?.();
-    };
+    return () => { unlisten?.(); };
   }, [navigate]);
   return null;
 }
@@ -48,12 +58,12 @@ function Shell() {
   useEffect(() => {
     refresh();
   }, []);
+
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div style={{ height: '100vh', display: 'flex', background: C.bg, overflow: 'hidden' }}>
       <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <Header />
-        <main className="flex-1 overflow-auto p-6">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <main style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
           <DeepLinkBridge />
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -79,3 +89,5 @@ export function App() {
     </HashRouter>
   );
 }
+
+export { C };

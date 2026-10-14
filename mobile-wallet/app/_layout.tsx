@@ -1,3 +1,9 @@
+/**
+ * app/_layout.tsx
+ * Root layout — checks for stored mnemonic on boot and routes accordingly.
+ * Uses lib/keystore.hasMnemonic() and lib/store for state.
+ */
+
 import '../src/polyfills';
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
@@ -5,9 +11,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useWalletStore } from '../src/store/wallet';
-import { loadEncrypted } from '../src/wallet/keystore';
-import { CONFIG } from '../src/config';
+import { hasMnemonic } from '../lib/keystore';
+import { useWalletStore } from '../lib/store';
 
 const INDIGO = '#1a1040';
 const GOLD = '#d4a017';
@@ -15,44 +20,42 @@ const CREAM = '#fdf6e3';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const [isChecking, setIsChecking] = useState(true);
-  const { address, isLocked, setLocked, setHasWallet, hasWallet } = useWalletStore();
+  const [walletExists, setWalletExists] = useState(false);
+  const store = useWalletStore();
   const router = useRouter();
   const segments = useSegments();
 
-  // On mount: check if a wallet exists in secure storage
+  // On mount: check if a wallet mnemonic exists in secure storage
   useEffect(() => {
     (async () => {
       try {
-        const blob = await loadEncrypted();
-        if (blob) {
-          setHasWallet(true);
-          setLocked(true); // exists but mnemonic not loaded into memory
-        }
+        const has = await hasMnemonic();
+        setWalletExists(has);
       } catch (err) {
-        console.warn('Wallet check failed:', err);
+        console.warn('[layout] hasMnemonic check failed:', err);
       } finally {
         setIsChecking(false);
       }
     })();
   }, []);
 
-  // Route guard
+  // Route guard — run after boot check completes
   useEffect(() => {
     if (isChecking) return;
-    const top = segments[0];
+
+    const top = segments[0] as string | undefined;
     const inOnboarding = top === 'onboarding';
     const inTabs = top === '(tabs)';
 
-    if (!hasWallet && !inOnboarding) {
-      router.replace('/onboarding/welcome');
-    } else if (hasWallet && !address && !inOnboarding) {
-      // wallet exists but locked — onboarding/secure handles unlock or
-      // user must re-enter PIN. For now, route to welcome which can detect.
-      // Keep them in tabs and let BiometricGuard handle.
-    } else if (hasWallet && address && !inTabs) {
+    if (!walletExists && !inOnboarding) {
+      // No wallet stored — send to onboarding
+      router.replace('/onboarding');
+    } else if (walletExists && store.isUnlocked && !inTabs) {
+      // Wallet exists and is unlocked — go to main app
       router.replace('/(tabs)');
     }
-  }, [isChecking, hasWallet, address, segments]);
+    // If wallet exists but locked — the dashboard handles the PIN unlock
+  }, [isChecking, walletExists, store.isUnlocked, segments]);
 
   if (isChecking) {
     return (

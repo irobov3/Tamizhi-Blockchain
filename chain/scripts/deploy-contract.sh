@@ -17,7 +17,16 @@
 set -euo pipefail
 
 # ---- Configuration ----------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CHAIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BINARY="${BINARY:-tamizhi}"
+if ! command -v "$BINARY" &>/dev/null; then
+  if [ -f "$CHAIN_DIR/build/tamizhi" ]; then
+    BINARY="$CHAIN_DIR/build/tamizhi"
+  elif [ -f "$CHAIN_DIR/tamizhi" ]; then
+    BINARY="$CHAIN_DIR/tamizhi"
+  fi
+fi
 CHAIN_ID="${CHAIN_ID:-tamizhi-1}"
 HOME_DIR="${HOME_DIR:-$HOME/.tamizhi}"
 KEY_NAME="${KEY_NAME:-validator}"
@@ -150,7 +159,7 @@ import json
 print(json.dumps({
     'name':   'Tamizhi Literary NFT Collection',
     'symbol': 'TNFT',
-    'minter': None
+    'minter': ''
 }))
 ")
 
